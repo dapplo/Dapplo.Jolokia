@@ -60,8 +60,18 @@ namespace Dapplo.Jolokia.Ui
 		private async void Connect_Click(object sender, RoutedEventArgs e)
 		{
 			ConnectButton.IsEnabled = false;
-			var jolokia = await Jolokia.Create(new Uri(JolokiaUri.Text));
-			JolokiaUri.IsEnabled = false;
+			Jolokia jolokia;
+            try
+			{
+				jolokia = await Jolokia.Create(new Uri(JolokiaUri.Text));
+
+			} catch (Exception ex)
+			{
+				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				ConnectButton.IsEnabled = true;
+				return;
+			}
+            JolokiaUri.IsEnabled = false;
 			await jolokia.RefreshAsync();
 
 			var javaLangDomain = jolokia.Domains["java.lang"];
@@ -105,6 +115,7 @@ namespace Dapplo.Jolokia.Ui
 				}
 			};
 			_timer.Start();
+			GCButton.IsEnabled = true;
 		}
 	}
 }
