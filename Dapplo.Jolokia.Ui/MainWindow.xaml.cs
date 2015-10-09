@@ -36,8 +36,10 @@ namespace Dapplo.Jolokia.Ui
 	{
 		private DispatcherTimer _timer;
 		private Attr _heapMemoryUsageAttribute;
+		private Attr _nonHeapMemoryUsageAttribute;
 		private Operation _garbageCollectOperation;
-		private LineSerie _memorySerie;
+		private LineSerie _heapMemorySerie;
+		private LineSerie _nonHeapMemorySerie;
 
 		public MainWindow()
 		{
@@ -72,7 +74,7 @@ namespace Dapplo.Jolokia.Ui
 				return;
 			}
             JolokiaUri.IsEnabled = false;
-			await jolokia.RefreshAsync();
+			await jolokia.LoadListAsync("java.lang", "type=Memory");
 
 			var javaLangDomain = jolokia.Domains["java.lang"];
 			var memoryMBean = (from mbean in javaLangDomain.Values
@@ -85,33 +87,57 @@ namespace Dapplo.Jolokia.Ui
 			_heapMemoryUsageAttribute = (from attribute in memoryMBean.Attributes
 										 where attribute.Key == "HeapMemoryUsage"
 										 select attribute.Value).First();
+			_nonHeapMemoryUsageAttribute = (from attribute in memoryMBean.Attributes
+										 where attribute.Key == "NonHeapMemoryUsage"
+										 select attribute.Value).First();
 
 			var initialHeapMemoryUsage = await _heapMemoryUsageAttribute.Read();
-
-			LineChart.PrimaryAxis.MaxValue = initialHeapMemoryUsage.max;
+			var initialNonHeapMemoryUsage = await _nonHeapMemoryUsageAttribute.Read();
+			LineChart.PrimaryAxis.MaxValue = Math.Max(initialHeapMemoryUsage.max, initialNonHeapMemoryUsage.max);
 			LineChart.PrimaryAxis.MinValue = 0;
-			_memorySerie = new LineSerie
+
+			_heapMemorySerie = new LineSerie
 			{
 				PrimaryValues = new ObservableCollection<double>
 					{
 						initialHeapMemoryUsage.used, initialHeapMemoryUsage.used
 					}
 			};
+			_nonHeapMemorySerie = new LineSerie {
+				PrimaryValues = new ObservableCollection<double>
+					{
+						initialNonHeapMemoryUsage.used, initialNonHeapMemoryUsage.used
+					}
+			};
 
 			LineChart.Series = new ObservableCollection<Serie>
 			{
-				_memorySerie
+				_heapMemorySerie, _nonHeapMemorySerie
 			};
 
 			_timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
 			_timer.Tick += async (tickSender, args) =>
 			{
-				var heapMemoryUsage = await _heapMemoryUsageAttribute.Read();
-				LineChart.PrimaryAxis.MaxValue = initialHeapMemoryUsage.max;
-				_memorySerie.PrimaryValues.Add(heapMemoryUsage.used);
-				if (_memorySerie.PrimaryValues.Count > 10)
+				double usedHeap = 0;
+				double usedNonHeap = 0;
+				try
 				{
-					_memorySerie.PrimaryValues.RemoveAt(0);
+					var heapMemoryUsage = await _heapMemoryUsageAttribute.Read();
+					var nonHeapMemoryUsage = await _nonHeapMemoryUsageAttribute.Read();
+					usedNonHeap = nonHeapMemoryUsage.used;
+                    usedHeap = heapMemoryUsage.used;
+				} catch
+				{
+					// Ignore
+				}
+				_heapMemorySerie.PrimaryValues.Add(usedHeap);
+				if (_heapMemorySerie.PrimaryValues.Count > 10)
+				{
+					_heapMemorySerie.PrimaryValues.RemoveAt(0);
+				}
+				_nonHeapMemorySerie.PrimaryValues.Add(usedNonHeap);
+				if (_nonHeapMemorySerie.PrimaryValues.Count > 10) {
+					_nonHeapMemorySerie.PrimaryValues.RemoveAt(0);
 				}
 			};
 			_timer.Start();

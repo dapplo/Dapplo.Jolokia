@@ -69,9 +69,18 @@ namespace Dapplo.Jolokia.Model
 		} = "java.lang.String";
 
 		/// <summary>
-		/// The execute Uri for the operation
+		/// Base Jolokia Uri http(s)://host:port/jolokia where this attribute was found
 		/// </summary>
-		public Uri ExecuteUri
+		public Uri JolokiaBaseUri
+		{
+			get;
+			set;
+		}
+
+		/// <summary>
+		/// MBean parent with it's fully qualified name
+		/// </summary>
+		public string Parent
 		{
 			get;
 			set;
@@ -90,9 +99,22 @@ namespace Dapplo.Jolokia.Model
 			{
 				throw new ArgumentException($"Passed arguments for operation {Name} do not match.");
 			}
-			var execUri = ExecuteUri.AppendSegments(arguments);
+			var execUri = JolokiaBaseUri.AppendSegments("exec", Parent, Name).AppendSegments(arguments);
 			var result = await execUri.GetAsJsonAsync(true, token, httpSettings).ConfigureAwait(false);
 			return result.value;
+		}
+
+		/// <summary>
+		/// Set a history for the operation
+		/// </summary>
+		/// <param name="count">Length of history</param>
+		/// <param name="seconds">seconds to keep elements</param>
+		/// <param name="token"></param>
+		/// <param name="httpSettings"></param>
+		public async Task EnableHistory(int count, int seconds, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
+		{
+			var historyLimitUri = JolokiaBaseUri.AppendSegments("exec/jolokia:type=Config/setHistoryLimitForOperation", Parent, Name, "[null]", "[null]", count, seconds);
+			await historyLimitUri.GetAsJsonAsync(true, token, httpSettings).ConfigureAwait(false);
 		}
 	}
 }

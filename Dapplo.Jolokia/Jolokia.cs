@@ -63,7 +63,7 @@ namespace Dapplo.Jolokia
 		{
 			var jolokia = new Jolokia(jolokiaUri);
 			jolokia.HttpSettings = httpSettings;
-			jolokia.AgentVersion = await jolokia.GetVersionAsync(token).ConfigureAwait(false);
+			await jolokia.LoadVersionAsync(token).ConfigureAwait(false);
 			return jolokia;
 		}
 
@@ -92,42 +92,58 @@ namespace Dapplo.Jolokia
 		{
 			get;
 			private set;
-		}
+		} = new Dictionary<string, IDictionary<string, MBean>>();
 
 		/// <summary>
 		/// Load all the JMX information
 		/// </summary>
-		/// <returns></returns>
 		public async Task RefreshAsync(CancellationToken token = default(CancellationToken))
 		{
-			AgentVersion = await GetVersionAsync(token).ConfigureAwait(false);
-			Domains = await ListAsync(token).ConfigureAwait(false);
+			await LoadVersionAsync(token).ConfigureAwait(false);
+			await LoadListAsync(null, null, token).ConfigureAwait(false);
 			return;
 		}
 
 		/// <summary>
 		/// Load the list output from Jolokia, and parse it to MBeans and Operations
 		/// </summary>
+		/// <param name="domainPath">domain to load, null if all</param>
+		/// <param name="mbeanPath">Mbean to load, null if all</param>
 		/// <param name="token"></param>
-		/// <returns></returns>
-		private async Task<IDictionary<string, IDictionary<string, MBean>>> ListAsync(CancellationToken token = default(CancellationToken))
+		/// <param name="httpSettings"></param>
+		public async Task LoadListAsync(string domainPath = null, string mbeanPath = null, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
-			IDictionary<string, IDictionary<string, MBean>> result = new Dictionary<string, IDictionary<string, MBean>>();
-
-			var listUri = _baseUri.AppendSegments("list");
-			var jmxInfo = await listUri.GetAsJsonAsync(token: token).ConfigureAwait(false);
+			var listUri = _baseUri.AppendSegments("list", domainPath, mbeanPath);
+			var jmxInfo = await listUri.GetAsJsonAsync(true, token, httpSettings ?? HttpSettings).ConfigureAwait(false);
 			if (jmxInfo.status != 200)
 			{
 				throw new InvalidOperationException("Status != 200");
 			}
-			var baseExecUri = _baseUri.AppendSegments("exec");
-			var baseReadAttributeUri = _baseUri.AppendSegments("read");
-			var baseWriteAttributeUri = _baseUri.AppendSegments("write");
-			foreach (var domainItem in (IDictionary<string, dynamic>)jmxInfo.value)
+
+			IDictionary<string, dynamic> domains;
+			if (!string.IsNullOrEmpty(domainPath))
+			{
+				IDictionary<string, dynamic> loadedMBeans = jmxInfo.value;
+				if (!string.IsNullOrEmpty(mbeanPath))
+				{
+					loadedMBeans = new Dictionary<string, dynamic> { { mbeanPath, loadedMBeans } };
+				}
+				domains = new Dictionary<string, dynamic> { { domainPath, loadedMBeans } };
+			}
+			else
+			{
+				domains = jmxInfo.value;
+			}
+
+			foreach (var domainItem in domains)
 			{
 				string domainName = domainItem.Key;
-				var mbeans = new Dictionary<string, MBean>();
-				result.Add(domainName, mbeans);
+				IDictionary<string, MBean> mbeans;
+				if (!Domains.TryGetValue(domainName, out mbeans))
+				{
+					mbeans = new Dictionary<string, MBean>();
+					Domains.Add(domainName, mbeans);
+				}
 				foreach (var mbeanItem in (IDictionary<string, dynamic>)domainItem.Value)
 				{
 					var mbean = new MBean
@@ -136,9 +152,6 @@ namespace Dapplo.Jolokia
 						Domain = domainName,
 						Description = mbeanItem.Value.desc
 					};
-					var mbeanBaseExecUri = baseExecUri.AppendSegments(mbean.FullyqualifiedName);
-					var mbeanBaseReadAttributeUri = baseReadAttributeUri.AppendSegments(mbean.FullyqualifiedName);
-					var mbeanBaseWriteAttributeUri = baseWriteAttributeUri.AppendSegments(mbean.FullyqualifiedName);
 
 					// Build attributes
 					var attributes = (IDictionary<string, dynamic>)mbeanItem.Value.attr;
@@ -152,10 +165,10 @@ namespace Dapplo.Jolokia
 								Description = attributeItem.Value.desc,
 								Type = attributeItem.Value.desc,
 								IsReadonly = attributeItem.Value.rw == false,
-								ReadUri = mbeanBaseReadAttributeUri.AppendSegments(attributeItem.Key),
-								WriteUri = mbeanBaseWriteAttributeUri.AppendSegments(attributeItem.Key)
+								JolokiaBaseUri = _baseUri,
+								Parent = mbean.FullyqualifiedName
 							};
-                            mbean.Attributes.Add(attribute.Name, attribute);
+							mbean.Attributes.Add(attribute.Name, attribute);
 						}
 					}
 
@@ -175,7 +188,8 @@ namespace Dapplo.Jolokia
 								Name = operationItem.Key,
 								Description = operationItem.Value.desc,
 								ReturnType = operationItem.Value.ret,
-								ExecuteUri = mbeanBaseExecUri.AppendSegments(operationItem.Key)
+								JolokiaBaseUri = _baseUri,
+								Parent = mbean.FullyqualifiedName
 							};
 							// Arguments
 							foreach (var argumentItem in (ICollection<dynamic>)operationItem.Value.args)
@@ -190,22 +204,39 @@ namespace Dapplo.Jolokia
 							mbean.Operations.Add(operation.Name, operation);
 						}
 					}
-					mbeans.Add(mbean.FullyqualifiedName, mbean);
+					if (mbeans.ContainsKey(mbean.FullyqualifiedName))
+					{
+						mbeans[mbean.FullyqualifiedName] = mbean;
+					}
+					else
+					{
+						mbeans.Add(mbean.FullyqualifiedName, mbean);
+					}
 				}
 			}
-			return result;
 		}
 
 		/// <summary>
-		/// 
+		/// Load (or reload) the Jolokia Agent Version
 		/// </summary>
 		/// <param name="token"></param>
-		/// <returns></returns>
-		private async Task<string> GetVersionAsync(CancellationToken token = default(CancellationToken))
+		public async Task LoadVersionAsync(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
 			var versionUri = _baseUri.AppendSegments("version");
-			var versionResult = await versionUri.GetAsJsonAsync(token: token).ConfigureAwait(false);
-			return versionResult.value.agent;
+			var versionResult = await versionUri.GetAsJsonAsync(true, token, httpSettings ?? HttpSettings).ConfigureAwait(false);
+			AgentVersion = versionResult.value.agent;
+		}
+
+
+		/// <summary>
+		/// Reset and turn of history
+		/// </summary>
+		/// <param name="token"></param>
+		/// <param name="httpSettings"></param>
+		public async Task ResetHistoryEntries(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
+		{
+			var resetHistoryUri = _baseUri.AppendSegments("exec/jolokia:type=Config/resetHistoryEntries");
+			await resetHistoryUri.GetAsJsonAsync(true, token, httpSettings).ConfigureAwait(false);
 		}
 	}
 }
