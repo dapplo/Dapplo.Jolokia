@@ -1,6 +1,6 @@
 ﻿/*
  * dapplo - building blocks for desktop applications
- * Copyright (C) 2015 Robin Krom
+ * Copyright (C) Dapplo 2015-2016
  * 
  * For more information see: http://dapplo.net/
  * dapplo repositories are hosted on GitHub: https://github.com/dapplo
@@ -20,12 +20,12 @@
  */
 
 using Dapplo.Jolokia.Model;
-using LiveCharts.Series;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
+using LiveCharts;
 
 namespace Dapplo.Jolokia.Ui
 {
@@ -38,12 +38,13 @@ namespace Dapplo.Jolokia.Ui
 		private Attr _heapMemoryUsageAttribute;
 		private Attr _nonHeapMemoryUsageAttribute;
 		private Operation _garbageCollectOperation;
-		private LineSerie _heapMemorySerie;
-		private LineSerie _nonHeapMemorySerie;
+		private LineSeries _heapMemorySerie;
+		private LineSeries _nonHeapMemorySerie;
 
 		public MainWindow()
 		{
 			InitializeComponent();
+			LineChart.Series = new ObservableCollection<Series>();
 			LineChart.PrimaryAxis.LabelFormatter = x => string.Format("{0:0.##} MB", x > 0 ? ((x / 1024) / 1024) : 0);
 		}
 
@@ -96,21 +97,23 @@ namespace Dapplo.Jolokia.Ui
 			LineChart.PrimaryAxis.MaxValue = Math.Max(initialHeapMemoryUsage.max, initialNonHeapMemoryUsage.max);
 			LineChart.PrimaryAxis.MinValue = 0;
 
-			_heapMemorySerie = new LineSerie
+
+
+			_heapMemorySerie = new LineSeries
 			{
 				PrimaryValues = new ObservableCollection<double>
 					{
 						initialHeapMemoryUsage.used, initialHeapMemoryUsage.used
 					}
 			};
-			_nonHeapMemorySerie = new LineSerie {
+			_nonHeapMemorySerie = new LineSeries {
 				PrimaryValues = new ObservableCollection<double>
 					{
 						initialNonHeapMemoryUsage.used, initialNonHeapMemoryUsage.used
 					}
 			};
 
-			LineChart.Series = new ObservableCollection<Serie>
+			LineChart.Series = new ObservableCollection<Series>
 			{
 				_heapMemorySerie, _nonHeapMemorySerie
 			};

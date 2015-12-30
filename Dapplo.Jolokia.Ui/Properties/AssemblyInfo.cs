@@ -1,6 +1,4 @@
 ﻿using System.Reflection;
-using System.Resources;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
 
@@ -10,9 +8,9 @@ using System.Windows;
 [assembly: AssemblyTitle("Dapplo.Jolokia.Ui")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("ING-DiBa AG")]
+[assembly: AssemblyCompany("Dapplo")]
 [assembly: AssemblyProduct("Dapplo.Jolokia.Ui")]
-[assembly: AssemblyCopyright("Copyright © ING-DiBa AG 2015")]
+[assembly: AssemblyCopyright("Copyright © Dapplo 2015-2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
