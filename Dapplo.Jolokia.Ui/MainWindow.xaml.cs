@@ -26,6 +26,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
 using LiveCharts;
+using System.Threading.Tasks;
 
 namespace Dapplo.Jolokia.Ui
 {
@@ -68,7 +69,8 @@ namespace Dapplo.Jolokia.Ui
 			{
 				jolokia = await Jolokia.Create(new Uri(JolokiaUri.Text));
 
-			} catch (Exception ex)
+			}
+			catch (Exception ex)
 			{
 				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 				ConnectButton.IsEnabled = true;
@@ -92,25 +94,18 @@ namespace Dapplo.Jolokia.Ui
 										 where attribute.Key == "NonHeapMemoryUsage"
 										 select attribute.Value).First();
 
-			var initialHeapMemoryUsage = await _heapMemoryUsageAttribute.Read();
-			var initialNonHeapMemoryUsage = await _nonHeapMemoryUsageAttribute.Read();
-			LineChart.PrimaryAxis.MaxValue = Math.Max(initialHeapMemoryUsage.max, initialNonHeapMemoryUsage.max);
+			LineChart.PrimaryAxis.MaxValue = 500;
 			LineChart.PrimaryAxis.MinValue = 0;
-
 
 
 			_heapMemorySerie = new LineSeries
 			{
-				PrimaryValues = new ObservableCollection<double>
-					{
-						initialHeapMemoryUsage.used, initialHeapMemoryUsage.used
-					}
+				PrimaryValues = new ObservableCollection<double>(),
+				Title = "Heap memory"
 			};
 			_nonHeapMemorySerie = new LineSeries {
-				PrimaryValues = new ObservableCollection<double>
-					{
-						initialNonHeapMemoryUsage.used, initialNonHeapMemoryUsage.used
-					}
+				PrimaryValues = new ObservableCollection<double>(),
+				Title = "Non Heap memory"
 			};
 
 			LineChart.Series = new ObservableCollection<Series>
@@ -118,33 +113,42 @@ namespace Dapplo.Jolokia.Ui
 				_heapMemorySerie, _nonHeapMemorySerie
 			};
 
+			await ReadValuesAsync();
 			_timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
 			_timer.Tick += async (tickSender, args) =>
 			{
-				double usedHeap = 0;
-				double usedNonHeap = 0;
-				try
-				{
-					var heapMemoryUsage = await _heapMemoryUsageAttribute.Read();
-					var nonHeapMemoryUsage = await _nonHeapMemoryUsageAttribute.Read();
-					usedNonHeap = nonHeapMemoryUsage.used;
-                    usedHeap = heapMemoryUsage.used;
-				} catch
-				{
-					// Ignore
-				}
-				_heapMemorySerie.PrimaryValues.Add(usedHeap);
-				if (_heapMemorySerie.PrimaryValues.Count > 10)
-				{
-					_heapMemorySerie.PrimaryValues.RemoveAt(0);
-				}
-				_nonHeapMemorySerie.PrimaryValues.Add(usedNonHeap);
-				if (_nonHeapMemorySerie.PrimaryValues.Count > 10) {
-					_nonHeapMemorySerie.PrimaryValues.RemoveAt(0);
-				}
-			};
+				await ReadValuesAsync();
+            };
 			_timer.Start();
 			GCButton.IsEnabled = true;
+		}
+
+		private async Task ReadValuesAsync()
+		{
+			double usedHeap = 0;
+			double usedNonHeap = 0;
+			try
+			{
+				var heapMemoryUsage = await _heapMemoryUsageAttribute.Read();
+				var nonHeapMemoryUsage = await _nonHeapMemoryUsageAttribute.Read();
+				usedNonHeap = nonHeapMemoryUsage.used;
+				usedHeap = heapMemoryUsage.used;
+				LineChart.PrimaryAxis.MaxValue = Math.Max(usedHeap, usedNonHeap);
+			}
+			catch
+			{
+				// Ignore
+			}
+			_heapMemorySerie.PrimaryValues.Add(usedHeap);
+			if (_heapMemorySerie.PrimaryValues.Count > 10)
+			{
+				_heapMemorySerie.PrimaryValues.RemoveAt(0);
+			}
+			_nonHeapMemorySerie.PrimaryValues.Add(usedNonHeap);
+			if (_nonHeapMemorySerie.PrimaryValues.Count > 10)
+			{
+				_nonHeapMemorySerie.PrimaryValues.RemoveAt(0);
+			}
 		}
 	}
 }
