@@ -16,7 +16,7 @@
 		<copyright>Dapplo</copyright>
 		<tags>Jolokia</tags>
 		<dependencies>
-			<dependency id="Dapplo.HttpExtensions" version="0.1.17" />
+			<dependency id="Dapplo.HttpExtensions" version="0.1.23" />
 		</dependencies>
 		<frameworkAssemblies>
 			<frameworkAssembly assemblyName="System.Net.Http" targetFramework="net45" />
