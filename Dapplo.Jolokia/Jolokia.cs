@@ -60,7 +60,7 @@ namespace Dapplo.Jolokia
 		/// <returns>Jolokia</returns>
 		public static async Task<Jolokia> Create(Uri jolokiaUri, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
-			// Make sure Jolokia answers with json
+			// Make sure Jolokia answers with json, see Release 1.0.2 – 2012-01-06: https://jolokia.org/changes-report.html
 			jolokiaUri = jolokiaUri.ExtendQuery("mimeType", "application/json");
 
 			var jolokia = new Jolokia(jolokiaUri);
