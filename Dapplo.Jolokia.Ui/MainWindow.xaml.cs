@@ -43,6 +43,7 @@ namespace Dapplo.Jolokia.Ui
 		private Operation _garbageCollectOperation;
 		private LineSeries _heapMemorySerie;
 		private LineSeries _nonHeapMemorySerie;
+		private Jolokia _jolokia;
 
 		public MainWindow()
 		{
@@ -54,7 +55,8 @@ namespace Dapplo.Jolokia.Ui
 		private async void GC_Button_Click(object sender, RoutedEventArgs e)
 		{
 			GCButton.IsEnabled = false;
-			await _garbageCollectOperation.Execute(null);
+
+			await _jolokia.Execute(_garbageCollectOperation, null);
 			GCButton.IsEnabled = true;
 		}
 
@@ -66,10 +68,9 @@ namespace Dapplo.Jolokia.Ui
 		private async void Connect_Click(object sender, RoutedEventArgs e)
 		{
 			ConnectButton.IsEnabled = false;
-			Jolokia jolokia;
             try
 			{
-				jolokia = await Jolokia.Create(new Uri(JolokiaUri.Text));
+				_jolokia = await Jolokia.Create(new Uri(JolokiaUri.Text));
 
 			}
 			catch (Exception ex)
@@ -79,9 +80,9 @@ namespace Dapplo.Jolokia.Ui
 				return;
 			}
             JolokiaUri.IsEnabled = false;
-			await jolokia.LoadListAsync("java.lang", "type=Memory");
+			await _jolokia.LoadListAsync("java.lang", "type=Memory");
 
-			var javaLangDomain = jolokia.Domains["java.lang"];
+			var javaLangDomain = _jolokia.Domains["java.lang"];
 			var memoryMBean = (from mbean in javaLangDomain.Values
 							   where mbean.Name == "type=Memory"
 							   select mbean).First();
@@ -131,8 +132,8 @@ namespace Dapplo.Jolokia.Ui
 			double usedNonHeap = 0;
 			try
 			{
-				var heapMemoryUsage = await _heapMemoryUsageAttribute.Read();
-				var nonHeapMemoryUsage = await _nonHeapMemoryUsageAttribute.Read();
+				var heapMemoryUsage = await _jolokia.Read(_heapMemoryUsageAttribute);
+				var nonHeapMemoryUsage = await _jolokia.Read(_nonHeapMemoryUsageAttribute);
 				usedNonHeap = nonHeapMemoryUsage.used;
 				usedHeap = heapMemoryUsage.used;
 				LineChart.PrimaryAxis.MaxValue = Math.Max(usedHeap, usedNonHeap);

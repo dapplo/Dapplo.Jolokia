@@ -36,11 +36,8 @@ namespace Dapplo.Jolokia
 	public class Jolokia
 	{
 		private readonly Uri _baseUri;
-		public IHttpSettings HttpSettings
-		{
-			get;
-			set;
-		}
+		private HttpBehaviour _httpBehaviour;
+
 		/// <summary>
 		/// Create a Jolokia API object
 		/// </summary>
@@ -63,8 +60,14 @@ namespace Dapplo.Jolokia
 		/// <returns>Jolokia</returns>
 		public static async Task<Jolokia> Create(Uri jolokiaUri, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
+			// Make sure Jolokia answers with json
+			jolokiaUri = jolokiaUri.ExtendQuery("mimeType", "application/json");
+
 			var jolokia = new Jolokia(jolokiaUri);
-			jolokia.HttpSettings = httpSettings;
+
+			jolokia._httpBehaviour = new HttpBehaviour {
+				HttpSettings = httpSettings
+			};
 			await jolokia.LoadVersionAsync(token).ConfigureAwait(false);
 			return jolokia;
 		}
@@ -116,7 +119,7 @@ namespace Dapplo.Jolokia
 		public async Task LoadListAsync(string domainPath = null, string mbeanPath = null, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
 			var listUri = _baseUri.AppendSegments("list", domainPath, mbeanPath);
-			var jmxInfo = await listUri.GetAsJsonAsync(true, token, httpSettings ?? HttpSettings).ConfigureAwait(false);
+			var jmxInfo = await listUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
 			if (jmxInfo.status != 200)
 			{
 				throw new InvalidOperationException("Status != 200");
@@ -167,7 +170,6 @@ namespace Dapplo.Jolokia
 								Description = attributeItem.Value.desc,
 								Type = attributeItem.Value.desc,
 								IsReadonly = attributeItem.Value.rw == false,
-								JolokiaBaseUri = _baseUri,
 								Parent = mbean.FullyqualifiedName
 							};
 							mbean.Attributes.Add(attribute.Name, attribute);
@@ -190,7 +192,6 @@ namespace Dapplo.Jolokia
 								Name = operationItem.Key,
 								Description = operationItem.Value.desc,
 								ReturnType = operationItem.Value.ret,
-								JolokiaBaseUri = _baseUri,
 								Parent = mbean.FullyqualifiedName
 							};
 							// Arguments
@@ -225,7 +226,7 @@ namespace Dapplo.Jolokia
 		public async Task LoadVersionAsync(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
 			var versionUri = _baseUri.AppendSegments("version");
-			var versionResult = await versionUri.GetAsJsonAsync(true, token, httpSettings ?? HttpSettings).ConfigureAwait(false);
+			var versionResult = await versionUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
 			AgentVersion = versionResult.value.agent;
 		}
 
@@ -238,7 +239,78 @@ namespace Dapplo.Jolokia
 		public async Task ResetHistoryEntries(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
 			var resetHistoryUri = _baseUri.AppendSegments("exec/jolokia:type=Config/resetHistoryEntries");
-			await resetHistoryUri.GetAsJsonAsync(true, token, httpSettings).ConfigureAwait(false);
+			await resetHistoryUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+		}
+
+		/// <summary>
+		/// Execute the operation
+		/// </summary>
+		/// <param name="operation">Operation to execute</param>
+		/// <param name="arguments">Array of strings for the arguments, check the arguments for what needs to be passed</param>
+		/// <param name="token">CancellationToken</param>
+		/// <returns>result with string, check the return type for what can be returned</returns>
+		public async Task<dynamic> Execute(Operation operation, string[] arguments, CancellationToken token = default(CancellationToken))
+		{
+			int passedArgumentCount = arguments == null ? 0 : arguments.Length;
+			int neededArgumentCount = operation.Arguments == null ? 0 : operation.Arguments.Count;
+			if (passedArgumentCount != neededArgumentCount)
+			{
+				throw new ArgumentException($"Passed arguments for operation {operation.Name} do not match.");
+			}
+			var execUri = _baseUri.AppendSegments("exec", operation.Parent, operation.Name).AppendSegments(arguments);
+			var result = await execUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			return result.value;
+		}
+
+		/// <summary>
+		/// Set a history for the operation
+		/// </summary>
+		/// <param name="count">Length of history</param>
+		/// <param name="seconds">seconds to keep elements</param>
+		/// <param name="token">CancellationToken</param>
+		public async Task EnableHistory(Operation operation, int count, int seconds, CancellationToken token = default(CancellationToken))
+		{
+			var historyLimitUri = _baseUri.AppendSegments("exec/jolokia:type=Config/setHistoryLimitForOperation", operation.Parent, operation.Name, "[null]", "[null]", count, seconds);
+			await historyLimitUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+		}
+
+		/// <summary>
+		/// Read the attribute
+		/// </summary>
+		/// <param name="attribute">Attr</param>
+		/// <param name="token">CancellationToken</param>
+		/// <returns>dynamic, check the Type for what it is</returns>
+		public async Task<dynamic> Read(Attr attribute, CancellationToken token = default(CancellationToken))
+		{
+			var readUri = _baseUri.AppendSegments("read", attribute.Parent, attribute.Name);
+			var result = await readUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			return result.value;
+		}
+
+		/// <summary>
+		/// Write the attribute
+		/// </summary>
+		/// <param name="attribute">Attr</param>
+		/// <param name="value">string with the </param>
+		/// <param name="token">CancellationToken</param>
+		/// <returns>dynamic, check the Type for what it is</returns>
+		public async Task<dynamic> Write(Attr attribute, string value, CancellationToken token = default(CancellationToken))
+		{
+			var writeUri = _baseUri.AppendSegments("write", attribute.Parent, attribute.Name).AppendSegments(value);
+			var result = await writeUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			return result.value;
+		}
+
+		/// <summary>
+		/// Set a history for the attribute
+		/// </summary>
+		/// <param name="count">Length of history</param>
+		/// <param name="seconds">seconds to keep elements</param>
+		/// <param name="token">CancellationToken</param>
+		public async Task EnableHistory(Attr attribute, int count, int seconds, CancellationToken token = default(CancellationToken))
+		{
+			var historyLimitUri = _baseUri.AppendSegments("exec/jolokia:type=Config/setHistoryLimitForAttribute", attribute.Parent, attribute.Name, "[null]", "[null]", count, seconds);
+			await historyLimitUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
 		}
 	}
 }

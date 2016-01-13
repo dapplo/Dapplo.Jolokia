@@ -21,10 +21,6 @@
 	along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-using Dapplo.HttpExtensions;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Dapplo.Jolokia.Model
 {
@@ -67,61 +63,12 @@ namespace Dapplo.Jolokia.Model
 		} = true;
 
 		/// <summary>
-		/// Base Jolokia Uri http(s)://host:port/jolokia where this attribute was found
-		/// </summary>
-		public Uri JolokiaBaseUri
-		{
-			get;
-			set;
-		}
-
-		/// <summary>
 		/// MBean parent with it's fully qualified name
 		/// </summary>
 		public string Parent
 		{
 			get;
 			set;
-		}
-
-		/// <summary>
-		/// Read the attribute
-		/// </summary>
-		/// <param name="token"></param>
-		/// <param name="httpSettings"></param>
-		/// <returns>dynamic, check the Type for what it is</returns>
-		public async Task<dynamic> Read(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
-		{
-			var readUri = JolokiaBaseUri.AppendSegments("read", Parent, Name);
-			var result = await readUri.GetAsJsonAsync(true, token, httpSettings).ConfigureAwait(false);
-			return result.value;
-		}
-
-		/// <summary>
-		/// Write the attribute
-		/// </summary>
-		/// <param name="argument"></param>
-		/// <param name="token"></param>
-		/// <param name="httpSettings"></param>
-		/// <returns>dynamic, check the Type for what it is</returns>
-		public async Task<dynamic> Write(string argument, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
-		{
-			var writeUri = JolokiaBaseUri.AppendSegments("write", Parent, Name).AppendSegments(argument);
-			var result = await writeUri.GetAsJsonAsync(true, token, httpSettings).ConfigureAwait(false);
-			return result.value;
-		}
-
-		/// <summary>
-		/// Set a history for the attribute
-		/// </summary>
-		/// <param name="count">Length of history</param>
-		/// <param name="seconds">seconds to keep elements</param>
-		/// <param name="token"></param>
-		/// <param name="httpSettings"></param>
-		public async Task EnableHistory(int count, int seconds, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
-		{
-			var historyLimitUri = JolokiaBaseUri.AppendSegments("exec/jolokia:type=Config/setHistoryLimitForAttribute", Parent, Name, "[null]", "[null]", count, seconds);
-			await historyLimitUri.GetAsJsonAsync(true, token, httpSettings).ConfigureAwait(false);
 		}
 	}
 }
