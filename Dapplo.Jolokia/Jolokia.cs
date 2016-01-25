@@ -119,7 +119,7 @@ namespace Dapplo.Jolokia
 		public async Task LoadListAsync(string domainPath = null, string mbeanPath = null, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
 			var listUri = _baseUri.AppendSegments("list", domainPath, mbeanPath);
-			var jmxInfo = await listUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			var jmxInfo = await listUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
 			if (jmxInfo.status != 200)
 			{
 				throw new InvalidOperationException("Status != 200");
@@ -226,7 +226,7 @@ namespace Dapplo.Jolokia
 		public async Task LoadVersionAsync(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
 			var versionUri = _baseUri.AppendSegments("version");
-			var versionResult = await versionUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			var versionResult = await versionUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
 			AgentVersion = versionResult.value.agent;
 		}
 
@@ -239,7 +239,7 @@ namespace Dapplo.Jolokia
 		public async Task ResetHistoryEntries(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
 			var resetHistoryUri = _baseUri.AppendSegments("exec/jolokia:type=Config/resetHistoryEntries");
-			await resetHistoryUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			await resetHistoryUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -258,7 +258,7 @@ namespace Dapplo.Jolokia
 				throw new ArgumentException($"Passed arguments for operation {operation.Name} do not match.");
 			}
 			var execUri = _baseUri.AppendSegments("exec", operation.Parent, operation.Name).AppendSegments(arguments);
-			var result = await execUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			var result = await execUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
 			return result.value;
 		}
 
@@ -271,7 +271,7 @@ namespace Dapplo.Jolokia
 		public async Task EnableHistory(Operation operation, int count, int seconds, CancellationToken token = default(CancellationToken))
 		{
 			var historyLimitUri = _baseUri.AppendSegments("exec/jolokia:type=Config/setHistoryLimitForOperation", operation.Parent, operation.Name, "[null]", "[null]", count, seconds);
-			await historyLimitUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			await historyLimitUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -283,7 +283,7 @@ namespace Dapplo.Jolokia
 		public async Task<dynamic> Read(Attr attribute, CancellationToken token = default(CancellationToken))
 		{
 			var readUri = _baseUri.AppendSegments("read", attribute.Parent, attribute.Name);
-			var result = await readUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			var result = await readUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
 			return result.value;
 		}
 
@@ -297,7 +297,7 @@ namespace Dapplo.Jolokia
 		public async Task<dynamic> Write(Attr attribute, string value, CancellationToken token = default(CancellationToken))
 		{
 			var writeUri = _baseUri.AppendSegments("write", attribute.Parent, attribute.Name).AppendSegments(value);
-			var result = await writeUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			var result = await writeUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
 			return result.value;
 		}
 
@@ -310,7 +310,7 @@ namespace Dapplo.Jolokia
 		public async Task EnableHistory(Attr attribute, int count, int seconds, CancellationToken token = default(CancellationToken))
 		{
 			var historyLimitUri = _baseUri.AppendSegments("exec/jolokia:type=Config/setHistoryLimitForAttribute", attribute.Parent, attribute.Name, "[null]", "[null]", count, seconds);
-			await historyLimitUri.GetAsJsonAsync(_httpBehaviour, token).ConfigureAwait(false);
+			await historyLimitUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
 		}
 	}
 }
