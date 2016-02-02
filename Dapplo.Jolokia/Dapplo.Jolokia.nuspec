@@ -1,22 +1,21 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
-        <id>Dapplo.Jolokia</id>
+        <id>$id$</id>
         <version>$version$</version>
-        <title>Dapplo.Jolokia</title>
-        <authors>Robin Krom</authors>
-        <owners>dapplo</owners>
+        <authors>$author$</authors>
         <licenseUrl>https://en.wikipedia.org/wiki/GNU_General_Public_License</licenseUrl>
         <projectUrl>http://www.dapplo.net/blocks/Dapplo.Jolokia.html</projectUrl>
         <iconUrl>http://www.dapplo.net/favicon.ico</iconUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
-        <description>Dapplo.Jolokia makes it easy to access a Jolokia server.</description>
-		<summary>A Jolokia API project.</summary>
+        <description>Dapplo.Jolokia is a Jolokia client</description>
+		<summary>A Jolokia API client library</summary>
         <language>en-us</language>
-		<copyright>Dapplo</copyright>
-		<tags>Jolokia</tags>
+		<copyright>$author$</copyright>
+		<tags>jolokia jmx</tags>
 		<dependencies>
-			<dependency id="Dapplo.HttpExtensions" version="0.3.3" />
+			<dependency id="Dapplo.HttpExtensions" version="0.3.20" />
+			<dependency id="Dapplo.LogFacade" version="0.1.3" />
 		</dependencies>
 		<frameworkAssemblies>
 			<frameworkAssembly assemblyName="System.Net.Http" targetFramework="net45" />

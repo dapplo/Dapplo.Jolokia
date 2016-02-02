@@ -12,23 +12,25 @@
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	Dapplo.HttpExtensions is distributed in the hope that it will be useful,
+	Dapplo.Jolokia is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+	along with Dapplo.Jolokia. If not, see <http://www.gnu.org/licenses/>.
  */
 
 using Dapplo.Jolokia.Model;
 using System;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
-using LiveCharts;
 using System.Threading.Tasks;
+using LiveCharts;
+using Dapplo.LogFacade;
+using Dapplo.LogFacade.Loggers;
+using Dapplo.Jolokia.Ui.Entities;
 
 namespace Dapplo.Jolokia.Ui
 {
@@ -37,6 +39,7 @@ namespace Dapplo.Jolokia.Ui
 	/// </summary>
 	public partial class MainWindow : Window
 	{
+		private static readonly LogSource Log = new LogSource();
 		private DispatcherTimer _timer;
 		private Attr _heapMemoryUsageAttribute;
 		private Attr _nonHeapMemoryUsageAttribute;
@@ -47,9 +50,10 @@ namespace Dapplo.Jolokia.Ui
 
 		public MainWindow()
 		{
+			LogSettings.Logger = new TraceLogger();
 			InitializeComponent();
-			LineChart.Series = new ObservableCollection<Series>();
-			LineChart.PrimaryAxis.LabelFormatter = x => string.Format("{0:0.##} MB", x > 0 ? ((x / 1024) / 1024) : 0);
+			LineChart.Series = new SeriesCollection();
+			LineChart.AxisY.LabelFormatter = x => string.Format("{0:0.##} MB", x > 0 ? ((x / 1024) / 1024) : 0);
 		}
 
 		private async void GC_Button_Click(object sender, RoutedEventArgs e)
@@ -97,30 +101,29 @@ namespace Dapplo.Jolokia.Ui
 										 where attribute.Key == "NonHeapMemoryUsage"
 										 select attribute.Value).First();
 
-			LineChart.PrimaryAxis.MaxValue = 500;
-			LineChart.PrimaryAxis.MinValue = 0;
-
+			LineChart.AxisY.MaxValue = 500;
+			LineChart.AxisY.MinValue = 0;
 
 			_heapMemorySerie = new LineSeries
-			{
-				PrimaryValues = new ObservableCollection<double>(),
+			{	
+				Values = new ChartValues<double>(),
 				Title = "Heap memory"
 			};
+			_heapMemorySerie.Values.Add(0d);
 			_nonHeapMemorySerie = new LineSeries {
-				PrimaryValues = new ObservableCollection<double>(),
+				Values = new ChartValues<double>(),
 				Title = "Non Heap memory"
 			};
+			_nonHeapMemorySerie.Values.Add(0d);
 
-			LineChart.Series = new ObservableCollection<Series>
-			{
-				_heapMemorySerie, _nonHeapMemorySerie
-			};
+			LineChart.Series.Add(_heapMemorySerie);
+			LineChart.Series.Add(_nonHeapMemorySerie);
 
 			await ReadValuesAsync();
 			_timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
 			_timer.Tick += async (tickSender, args) =>
 			{
-				await ReadValuesAsync();
+				await Dispatcher.Invoke(async () => { await ReadValuesAsync(); });
             };
 			_timer.Start();
 			GCButton.IsEnabled = true;
@@ -132,25 +135,27 @@ namespace Dapplo.Jolokia.Ui
 			double usedNonHeap = 0;
 			try
 			{
-				var heapMemoryUsage = await _jolokia.Read(_heapMemoryUsageAttribute);
-				var nonHeapMemoryUsage = await _jolokia.Read(_nonHeapMemoryUsageAttribute);
-				usedNonHeap = nonHeapMemoryUsage.used;
-				usedHeap = heapMemoryUsage.used;
-				LineChart.PrimaryAxis.MaxValue = Math.Max(usedHeap, usedNonHeap);
+				var heapMemoryUsage = await _jolokia.Read<MemoryUsage>(_heapMemoryUsageAttribute);
+				var nonHeapMemoryUsage = await _jolokia.Read<MemoryUsage>(_nonHeapMemoryUsageAttribute);
+				usedNonHeap = nonHeapMemoryUsage.Used;
+				usedHeap = heapMemoryUsage.Used;
+				Log.Info().WriteLine("heapMemoryUsage: {0}, nonHeapMemoryUsage: {1}", usedHeap, usedNonHeap);
+				LineChart.AxisY.MaxValue = Math.Max(usedHeap, usedNonHeap);
 			}
-			catch
+			catch (Exception ex)
 			{
 				// Ignore
+				Log.Error().WriteLine(ex, "Problem retrieving heap usage");
 			}
-			_heapMemorySerie.PrimaryValues.Add(usedHeap);
-			if (_heapMemorySerie.PrimaryValues.Count > 10)
+			_heapMemorySerie.Values.Add(usedHeap);
+			if (_heapMemorySerie.Values.Count > 10)
 			{
-				_heapMemorySerie.PrimaryValues.RemoveAt(0);
+				_heapMemorySerie.Values.RemoveAt(0);
 			}
-			_nonHeapMemorySerie.PrimaryValues.Add(usedNonHeap);
-			if (_nonHeapMemorySerie.PrimaryValues.Count > 10)
+			_nonHeapMemorySerie.Values.Add(usedNonHeap);
+			if (_nonHeapMemorySerie.Values.Count > 10)
 			{
-				_nonHeapMemorySerie.PrimaryValues.RemoveAt(0);
+				_nonHeapMemorySerie.Values.RemoveAt(0);
 			}
 		}
 	}

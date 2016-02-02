@@ -12,17 +12,19 @@
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	Dapplo.HttpExtensions is distributed in the hope that it will be useful,
+	Dapplo.Jolokia is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+	along with Dapplo.Jolokia. If not, see <http://www.gnu.org/licenses/>.
  */
 
 using Dapplo.HttpExtensions;
+using Dapplo.Jolokia.Entities;
 using Dapplo.Jolokia.Model;
+using Dapplo.LogFacade;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -35,6 +37,7 @@ namespace Dapplo.Jolokia
 	/// </summary>
 	public class Jolokia
 	{
+		private static readonly LogSource Log = new LogSource();
 		private readonly Uri _baseUri;
 		private HttpBehaviour _httpBehaviour;
 
@@ -277,14 +280,15 @@ namespace Dapplo.Jolokia
 		/// <summary>
 		/// Read the attribute
 		/// </summary>
+		/// <typeparam name="TValue">the type to which the value of the attribute is deserialized to. Could be dynamic if you don't know what it is</typeparam>
 		/// <param name="attribute">Attr</param>
 		/// <param name="token">CancellationToken</param>
-		/// <returns>dynamic, check the Type for what it is</returns>
-		public async Task<dynamic> Read(Attr attribute, CancellationToken token = default(CancellationToken))
+		/// <returns>TValue</returns>
+		public async Task<TValue> Read<TValue>(Attr attribute, CancellationToken token = default(CancellationToken))
 		{
 			var readUri = _baseUri.AppendSegments("read", attribute.Parent, attribute.Name);
-			var result = await readUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
-			return result.value;
+			var result = await readUri.GetAsAsync<AttributeValue<TValue>>(_httpBehaviour, token).ConfigureAwait(false);
+			return result.Value;
 		}
 
 		/// <summary>
