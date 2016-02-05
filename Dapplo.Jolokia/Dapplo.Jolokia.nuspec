@@ -13,10 +13,6 @@
         <language>en-us</language>
 		<copyright>$author$</copyright>
 		<tags>jolokia jmx</tags>
-		<dependencies>
-			<dependency id="Dapplo.HttpExtensions" version="0.3.20" />
-			<dependency id="Dapplo.LogFacade" version="0.1.3" />
-		</dependencies>
 		<frameworkAssemblies>
 			<frameworkAssembly assemblyName="System.Net.Http" targetFramework="net45" />
 		</frameworkAssemblies>
