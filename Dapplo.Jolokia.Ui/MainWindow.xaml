@@ -21,8 +21,7 @@
             <TextBox Text="http://hostname:port/jolokia" DockPanel.Dock="Left" Name="JolokiaUri"/>
         </DockPanel>
         <charts:LineChart Height="300" x:Name="LineChart" 
-         Background="#FBFBFB" BorderBrush="LightGray" BorderThickness="1"
-         Zooming="True"></charts:LineChart>
+         Background="#FBFBFB" BorderBrush="LightGray" BorderThickness="1"></charts:LineChart>
         <Button Content="Garbage collect" Click="GC_Button_Click" HorizontalAlignment="Center" Name="GCButton" IsEnabled="False"/>
     </StackPanel>
 </Window>

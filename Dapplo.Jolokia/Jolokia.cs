@@ -39,7 +39,6 @@ namespace Dapplo.Jolokia
 	{
 		private static readonly LogSource Log = new LogSource();
 		private readonly Uri _baseUri;
-		private HttpBehaviour _httpBehaviour;
 
 		/// <summary>
 		/// Create a Jolokia API object
@@ -53,7 +52,7 @@ namespace Dapplo.Jolokia
 			var uriBuilder = new UriBuilder(schema, hostname, port, "/jolokia");
 			uriBuilder.UserName = username;
 			uriBuilder.Password = password;
-			return await Create(uriBuilder.Uri, token, httpSettings).ConfigureAwait(false);
+			return await Create(uriBuilder.Uri, token).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -61,16 +60,12 @@ namespace Dapplo.Jolokia
 		/// </summary>
 		/// <param name="jolokiaUri">Predefined base-uri to the jolokia REST API (normally ends with jolokia)</param>
 		/// <returns>Jolokia</returns>
-		public static async Task<Jolokia> Create(Uri jolokiaUri, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
+		public static async Task<Jolokia> Create(Uri jolokiaUri, CancellationToken token = default(CancellationToken))
 		{
 			// Make sure Jolokia answers with json, see Release 1.0.2 – 2012-01-06: https://jolokia.org/changes-report.html
 			jolokiaUri = jolokiaUri.ExtendQuery("mimeType", "application/json");
 
 			var jolokia = new Jolokia(jolokiaUri);
-
-			jolokia._httpBehaviour = new HttpBehaviour {
-				HttpSettings = httpSettings
-			};
 			await jolokia.LoadVersionAsync(token).ConfigureAwait(false);
 			return jolokia;
 		}
@@ -122,7 +117,7 @@ namespace Dapplo.Jolokia
 		public async Task LoadListAsync(string domainPath = null, string mbeanPath = null, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
 			var listUri = _baseUri.AppendSegments("list", domainPath, mbeanPath);
-			var jmxInfo = await listUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
+			var jmxInfo = await listUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
 			if (jmxInfo.status != 200)
 			{
 				throw new InvalidOperationException("Status != 200");
@@ -229,7 +224,7 @@ namespace Dapplo.Jolokia
 		public async Task LoadVersionAsync(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
 			var versionUri = _baseUri.AppendSegments("version");
-			var versionResult = await versionUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
+			var versionResult = await versionUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
 			AgentVersion = versionResult.value.agent;
 		}
 
@@ -242,7 +237,7 @@ namespace Dapplo.Jolokia
 		public async Task ResetHistoryEntries(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
 		{
 			var resetHistoryUri = _baseUri.AppendSegments("exec/jolokia:type=Config/resetHistoryEntries");
-			await resetHistoryUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
+			await resetHistoryUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -261,7 +256,7 @@ namespace Dapplo.Jolokia
 				throw new ArgumentException($"Passed arguments for operation {operation.Name} do not match.");
 			}
 			var execUri = _baseUri.AppendSegments("exec", operation.Parent, operation.Name).AppendSegments(arguments);
-			var result = await execUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
+			var result = await execUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
 			return result.value;
 		}
 
@@ -274,7 +269,7 @@ namespace Dapplo.Jolokia
 		public async Task EnableHistory(Operation operation, int count, int seconds, CancellationToken token = default(CancellationToken))
 		{
 			var historyLimitUri = _baseUri.AppendSegments("exec/jolokia:type=Config/setHistoryLimitForOperation", operation.Parent, operation.Name, "[null]", "[null]", count, seconds);
-			await historyLimitUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
+			await historyLimitUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -287,7 +282,7 @@ namespace Dapplo.Jolokia
 		public async Task<TValue> Read<TValue>(Attr attribute, CancellationToken token = default(CancellationToken))
 		{
 			var readUri = _baseUri.AppendSegments("read", attribute.Parent, attribute.Name);
-			var result = await readUri.GetAsAsync<AttributeValue<TValue>>(_httpBehaviour, token).ConfigureAwait(false);
+			var result = await readUri.GetAsAsync<AttributeValue<TValue>>(token).ConfigureAwait(false);
 			return result.Value;
 		}
 
@@ -301,7 +296,7 @@ namespace Dapplo.Jolokia
 		public async Task<dynamic> Write(Attr attribute, string value, CancellationToken token = default(CancellationToken))
 		{
 			var writeUri = _baseUri.AppendSegments("write", attribute.Parent, attribute.Name).AppendSegments(value);
-			var result = await writeUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
+			var result = await writeUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
 			return result.value;
 		}
 
@@ -314,7 +309,7 @@ namespace Dapplo.Jolokia
 		public async Task EnableHistory(Attr attribute, int count, int seconds, CancellationToken token = default(CancellationToken))
 		{
 			var historyLimitUri = _baseUri.AppendSegments("exec/jolokia:type=Config/setHistoryLimitForAttribute", attribute.Parent, attribute.Name, "[null]", "[null]", count, seconds);
-			await historyLimitUri.GetAsAsync<dynamic>(_httpBehaviour, token).ConfigureAwait(false);
+			await historyLimitUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
 		}
 	}
 }
