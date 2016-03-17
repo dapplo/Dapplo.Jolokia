@@ -1,5 +1,6 @@
 # Dapplo.Jolokia
 A simple project, based on Dapplo.HttpExtensions, to access the Jolokia REST API (see: https://jolokia.org/)
+This is work in progress, still have to convert the project to multi "platform" support.
 
 An example is included which shows how to connect, query MBeans with operations and attributes, and used them.
 
