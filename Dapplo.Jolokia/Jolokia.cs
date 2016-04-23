@@ -24,7 +24,6 @@
 using Dapplo.HttpExtensions;
 using Dapplo.Jolokia.Entities;
 using Dapplo.Jolokia.Model;
-using Dapplo.LogFacade;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -37,7 +36,6 @@ namespace Dapplo.Jolokia
 	/// </summary>
 	public class Jolokia
 	{
-		private static readonly LogSource Log = new LogSource();
 		private readonly Uri _baseUri;
 
 		/// <summary>
@@ -46,12 +44,21 @@ namespace Dapplo.Jolokia
 		/// <param name="hostname"></param>
 		/// <param name="port"></param>
 		/// <param name="schema"></param>
+		/// <param name="token"></param>
+		/// <param name="username"></param>
+		/// <param name="password"></param>
 		/// <returns>Jolokia</returns>
-		public static async Task<Jolokia> Create(string hostname, int port, string schema = "http", string username = null, string password = null, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
+		public static async Task<Jolokia> Create(string hostname, int port, string schema = "http", string username = null, string password = null, CancellationToken token = default(CancellationToken))
 		{
 			var uriBuilder = new UriBuilder(schema, hostname, port, "/jolokia");
-			uriBuilder.UserName = username;
-			uriBuilder.Password = password;
+			if (username != null)
+			{
+				uriBuilder.UserName = username;
+			}
+			if (password != null)
+			{
+				uriBuilder.Password = password;
+			}
 			return await Create(uriBuilder.Uri, token).ConfigureAwait(false);
 		}
 
@@ -59,6 +66,7 @@ namespace Dapplo.Jolokia
 		/// Create a Jolokia API object
 		/// </summary>
 		/// <param name="jolokiaUri">Predefined base-uri to the jolokia REST API (normally ends with jolokia)</param>
+		/// <param name="token"></param>
 		/// <returns>Jolokia</returns>
 		public static async Task<Jolokia> Create(Uri jolokiaUri, CancellationToken token = default(CancellationToken))
 		{
@@ -94,7 +102,6 @@ namespace Dapplo.Jolokia
 		public IDictionary<string, IDictionary<string, MBean>> Domains
 		{
 			get;
-			private set;
 		} = new Dictionary<string, IDictionary<string, MBean>>();
 
 		/// <summary>
@@ -104,7 +111,6 @@ namespace Dapplo.Jolokia
 		{
 			await LoadVersionAsync(token).ConfigureAwait(false);
 			await LoadListAsync(null, null, token).ConfigureAwait(false);
-			return;
 		}
 
 		/// <summary>
@@ -113,8 +119,7 @@ namespace Dapplo.Jolokia
 		/// <param name="domainPath">domain to load, null if all</param>
 		/// <param name="mbeanPath">Mbean to load, null if all</param>
 		/// <param name="token"></param>
-		/// <param name="httpSettings"></param>
-		public async Task LoadListAsync(string domainPath = null, string mbeanPath = null, CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
+		public async Task LoadListAsync(string domainPath = null, string mbeanPath = null, CancellationToken token = default(CancellationToken))
 		{
 			var listUri = _baseUri.AppendSegments("list", domainPath, mbeanPath);
 			var jmxInfo = await listUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
@@ -221,7 +226,7 @@ namespace Dapplo.Jolokia
 		/// Load (or reload) the Jolokia Agent Version
 		/// </summary>
 		/// <param name="token"></param>
-		public async Task LoadVersionAsync(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
+		public async Task LoadVersionAsync(CancellationToken token = default(CancellationToken))
 		{
 			var versionUri = _baseUri.AppendSegments("version");
 			var versionResult = await versionUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
@@ -233,8 +238,7 @@ namespace Dapplo.Jolokia
 		/// Reset and turn of history
 		/// </summary>
 		/// <param name="token"></param>
-		/// <param name="httpSettings"></param>
-		public async Task ResetHistoryEntries(CancellationToken token = default(CancellationToken), IHttpSettings httpSettings = null)
+		public async Task ResetHistoryEntries(CancellationToken token = default(CancellationToken))
 		{
 			var resetHistoryUri = _baseUri.AppendSegments("exec/jolokia:type=Config/resetHistoryEntries");
 			await resetHistoryUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
@@ -249,8 +253,8 @@ namespace Dapplo.Jolokia
 		/// <returns>result with string, check the return type for what can be returned</returns>
 		public async Task<dynamic> Execute(Operation operation, string[] arguments, CancellationToken token = default(CancellationToken))
 		{
-			int passedArgumentCount = arguments == null ? 0 : arguments.Length;
-			int neededArgumentCount = operation.Arguments == null ? 0 : operation.Arguments.Count;
+			int passedArgumentCount = arguments?.Length ?? 0;
+			int neededArgumentCount = operation.Arguments?.Count ?? 0;
 			if (passedArgumentCount != neededArgumentCount)
 			{
 				throw new ArgumentException($"Passed arguments for operation {operation.Name} do not match.");
@@ -263,6 +267,7 @@ namespace Dapplo.Jolokia
 		/// <summary>
 		/// Set a history for the operation
 		/// </summary>
+		/// <param name="operation">Operation</param>
 		/// <param name="count">Length of history</param>
 		/// <param name="seconds">seconds to keep elements</param>
 		/// <param name="token">CancellationToken</param>
@@ -303,6 +308,7 @@ namespace Dapplo.Jolokia
 		/// <summary>
 		/// Set a history for the attribute
 		/// </summary>
+		/// <param name="attribute">Attr</param>
 		/// <param name="count">Length of history</param>
 		/// <param name="seconds">seconds to keep elements</param>
 		/// <param name="token">CancellationToken</param>

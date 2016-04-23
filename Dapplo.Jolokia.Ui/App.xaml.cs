@@ -21,14 +21,12 @@
 	along with Dapplo.Jolokia. If not, see <http://www.gnu.org/licenses/>.
  */
 
-using System.Windows;
-
 namespace Dapplo.Jolokia.Ui
 {
 	/// <summary>
 	/// Interaction logic for App.xaml
 	/// </summary>
-	public partial class App : Application
+	public partial class App
 	{
 	}
 }

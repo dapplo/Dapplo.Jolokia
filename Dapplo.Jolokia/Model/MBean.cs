@@ -27,13 +27,7 @@ namespace Dapplo.Jolokia.Model
 {
 	public class MBean
 	{
-		public string FullyqualifiedName
-		{
-			get
-			{
-				return string.Format("{0}:{1}", Domain, Name);
-			}
-		}
+		public string FullyqualifiedName => $"{Domain}:{Name}";
 
 		public string Name
 		{

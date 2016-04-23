@@ -5,8 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:charts="clr-namespace:LiveCharts;assembly=LiveCharts"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        xmlns:local="clr-namespace:Dapplo.Jolokia.Ui"
-        mc:Ignorable="d" Width="600" Height="400" Background="DarkOrange"
+		mc:Ignorable="d" Width="600" Height="400" Background="DarkOrange"
         Title="MainWindow" WindowStyle="None" ResizeMode="NoResize"  WindowStartupLocation="CenterScreen">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome ResizeBorderThickness="0" CaptionHeight="50" NonClientFrameEdges="None" GlassFrameThickness="0"/>
@@ -22,6 +21,6 @@
         </DockPanel>
         <charts:LineChart Height="300" x:Name="LineChart" 
          Background="#FBFBFB" BorderBrush="LightGray" BorderThickness="1"></charts:LineChart>
-        <Button Content="Garbage collect" Click="GC_Button_Click" HorizontalAlignment="Center" Name="GCButton" IsEnabled="False"/>
+        <Button Content="Garbage collect" Click="GC_Button_Click" HorizontalAlignment="Center" Name="GcButton" IsEnabled="False"/>
     </StackPanel>
 </Window>

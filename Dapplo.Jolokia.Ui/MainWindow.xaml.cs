@@ -37,7 +37,7 @@ namespace Dapplo.Jolokia.Ui
 	/// <summary>
 	/// Interaction logic for MainWindow.xaml
 	/// </summary>
-	public partial class MainWindow : Window
+	public partial class MainWindow
 	{
 		private static readonly LogSource Log = new LogSource();
 		private DispatcherTimer _timer;
@@ -53,15 +53,15 @@ namespace Dapplo.Jolokia.Ui
 			LogSettings.Logger = new TraceLogger();
 			InitializeComponent();
 			LineChart.Series = new SeriesCollection();
-			LineChart.AxisY.LabelFormatter = x => string.Format("{0:0.##} MB", x > 0 ? ((x / 1024) / 1024) : 0);
+			LineChart.AxisY.LabelFormatter = x => $"{(x > 0 ? x/1024/1024 : 0):0.##} MB";
 		}
 
 		private async void GC_Button_Click(object sender, RoutedEventArgs e)
 		{
-			GCButton.IsEnabled = false;
+			GcButton.IsEnabled = false;
 
 			await _jolokia.Execute(_garbageCollectOperation, null);
-			GCButton.IsEnabled = true;
+			GcButton.IsEnabled = true;
 		}
 
 		private void Button_Close_Click(object sender, RoutedEventArgs e)
@@ -126,7 +126,7 @@ namespace Dapplo.Jolokia.Ui
 				await Dispatcher.Invoke(async () => { await ReadValuesAsync(); });
             };
 			_timer.Start();
-			GCButton.IsEnabled = true;
+			GcButton.IsEnabled = true;
 		}
 
 		private async Task ReadValuesAsync()
