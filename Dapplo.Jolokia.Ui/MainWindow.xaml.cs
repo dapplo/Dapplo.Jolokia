@@ -1,25 +1,23 @@
-﻿/*
-	Dapplo - building blocks for desktop applications
-	Copyright (C) 2015-2016 Dapplo
-
-	For more information see: http://dapplo.net/
-	Dapplo repositories are hosted on GitHub: https://github.com/dapplo
-
-	This file is part of Dapplo.Jolokia.
-
-	Dapplo.Jolokia is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	Dapplo.Jolokia is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with Dapplo.Jolokia. If not, see <http://www.gnu.org/licenses/>.
- */
+﻿//  Dapplo - building blocks for desktop applications
+//  Copyright (C) 2015-2016 Dapplo
+// 
+//  For more information see: http://dapplo.net/
+//  Dapplo repositories are hosted on GitHub: https://github.com/dapplo
+// 
+//  This file is part of Dapplo.Jolokia
+// 
+//  Dapplo.Jolokia is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Lesser General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+// 
+//  Dapplo.Jolokia is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Lesser General Public License for more details.
+// 
+//  You should have a copy of the GNU Lesser General Public License
+//  along with Dapplo.Jolokia. If not, see <http://www.gnu.org/licenses/lgpl.txt>.
 
 using Dapplo.Jolokia.Model;
 using System;
@@ -53,7 +51,6 @@ namespace Dapplo.Jolokia.Ui
 			LogSettings.Logger = new TraceLogger();
 			InitializeComponent();
 			LineChart.Series = new SeriesCollection();
-			LineChart.AxisY.LabelFormatter = x => $"{(x > 0 ? x/1024/1024 : 0):0.##} MB";
 		}
 
 		private async void GC_Button_Click(object sender, RoutedEventArgs e)
@@ -101,9 +98,6 @@ namespace Dapplo.Jolokia.Ui
 										 where attribute.Key == "NonHeapMemoryUsage"
 										 select attribute.Value).First();
 
-			LineChart.AxisY.MaxValue = 500;
-			LineChart.AxisY.MinValue = 0;
-
 			_heapMemorySerie = new LineSeries
 			{	
 				Values = new ChartValues<double>(),
@@ -140,7 +134,6 @@ namespace Dapplo.Jolokia.Ui
 				usedNonHeap = nonHeapMemoryUsage.Used;
 				usedHeap = heapMemoryUsage.Used;
 				Log.Info().WriteLine("heapMemoryUsage: {0}, nonHeapMemoryUsage: {1}", usedHeap, usedNonHeap);
-				LineChart.AxisY.MaxValue = Math.Max(usedHeap, usedNonHeap);
 			}
 			catch (Exception ex)
 			{
