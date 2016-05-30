@@ -2,9 +2,17 @@ version: 0.1.{build}
 skip_tags: true
 configuration: Release
 platform: Any CPU
-shallow_clone: true
+clone_depth: 2
+branches:
+  only:
+  - master
+install:
+  - choco install gitlink -y
 before_build:
   - nuget restore
+  - ps: if(-not $env:APPVEYOR_PULL_REQUEST_NUMBER) { $env:is_not_pr = "true"; }
+before_package:
+  - GitLink .\
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.*'
@@ -14,7 +22,7 @@ assembly_info:
 build:
   project: Dapplo.Jolokia.sln
   publish_nuget: true
-  publish_nuget_symbols: true
+  publish_nuget_symbols: false
   verbosity: minimal
 artifacts:
 - path: '*.nupkg'
@@ -27,13 +35,21 @@ notifications:
   on_build_failure: true
   on_build_status_changed: false
 deploy:
-- provider: NuGet
-  skip_symbols: false
-  api_key:
-    secure: xkDQ385+smLqdzhESsXBJvnUjK4FZ4Djjrqi9tFR29dwESIvPYOrQAqgri5Nf/fA
 - provider: GitHub
-  release: Dapplo.Jolokia-v$(appveyor_build_version)
+  release: Dapplo.CaliburnMicro-v$(appveyor_build_version)
   auth_token:
     secure: eBQPtXg53XgcvdcVY3wQAw6kkwNh+QhcsTDwzyQLLh6IOPyiePEaEhJR0D2YBjAj
   artifact: /.*\.nupkg/
   draft: false
+  on:
+    branch: master
+    is_not_pr: true
+    appveyor_repo_commit_message_extended: /\[release\]/
+- provider: NuGet
+  skip_symbols: true
+  api_key:
+    secure: xkDQ385+smLqdzhESsXBJvnUjK4FZ4Djjrqi9tFR29dwESIvPYOrQAqgri5Nf/fA
+  on:
+    branch: master
+    is_not_pr: true
+    appveyor_repo_commit_message_extended: /\[release\]/
