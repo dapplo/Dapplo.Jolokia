@@ -36,7 +36,7 @@ notifications:
   on_build_status_changed: false
 deploy:
 - provider: GitHub
-  release: Dapplo.CaliburnMicro-v$(appveyor_build_version)
+  release: Dapplo.Jolokia-v$(appveyor_build_version)
   auth_token:
     secure: eBQPtXg53XgcvdcVY3wQAw6kkwNh+QhcsTDwzyQLLh6IOPyiePEaEhJR0D2YBjAj
   artifact: /.*\.nupkg/
