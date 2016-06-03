@@ -3,10 +3,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:charts="clr-namespace:LiveCharts;assembly=LiveCharts"
+        xmlns:charts="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+		xmlns:local="clr-namespace:Dapplo.Jolokia.Ui"
 		mc:Ignorable="d" Width="600" Height="400" Background="DarkOrange"
-        Title="MainWindow" WindowStyle="None" ResizeMode="NoResize"  WindowStartupLocation="CenterScreen">
+        Title="MainWindow" WindowStyle="None" ResizeMode="NoResize"  WindowStartupLocation="CenterScreen"
+		d:DataContext="{d:DesignInstance local:MainWindow}"
+		>
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome ResizeBorderThickness="0" CaptionHeight="50" NonClientFrameEdges="None" GlassFrameThickness="0"/>
     </shell:WindowChrome.WindowChrome>
@@ -19,8 +22,12 @@
             <Button Content="Connect" Click="Connect_Click" DockPanel.Dock="Right" Name="ConnectButton"/>
             <TextBox Text="http://hostname:port/jolokia" DockPanel.Dock="Left" Name="JolokiaUri"/>
         </DockPanel>
-        <charts:LineChart Height="300" x:Name="LineChart" 
-         Background="#FBFBFB" BorderBrush="LightGray" BorderThickness="1"></charts:LineChart>
+		<charts:CartesianChart>
+			<charts:CartesianChart.Series>
+				<charts:LineSeries Values="{Binding HeapMemoryValues}" DataLabels="True" Title="Heap" />
+				<charts:LineSeries Values="{Binding NonHeapMemoryValues}" DataLabels="True" Title="Non heap" />
+			</charts:CartesianChart.Series>
+		</charts:CartesianChart>
         <Button Content="Garbage collect" Click="GC_Button_Click" HorizontalAlignment="Center" Name="GcButton" IsEnabled="False"/>
     </StackPanel>
 </Window>

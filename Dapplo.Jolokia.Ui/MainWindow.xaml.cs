@@ -29,6 +29,8 @@ using LiveCharts;
 using Dapplo.LogFacade;
 using Dapplo.LogFacade.Loggers;
 using Dapplo.Jolokia.Ui.Entities;
+using LiveCharts.Wpf;
+using LiveCharts.Configurations;
 
 namespace Dapplo.Jolokia.Ui
 {
@@ -42,15 +44,19 @@ namespace Dapplo.Jolokia.Ui
 		private Attr _heapMemoryUsageAttribute;
 		private Attr _nonHeapMemoryUsageAttribute;
 		private Operation _garbageCollectOperation;
-		private LineSeries _heapMemorySerie;
-		private LineSeries _nonHeapMemorySerie;
 		private Jolokia _jolokia;
+
+		public ChartValues<double> HeapMemoryValues { get; set; } = new ChartValues<double>();
+
+		public ChartValues<double> NonHeapMemoryValues { get; set; } = new ChartValues<double>();
 
 		public MainWindow()
 		{
 			LogSettings.Logger = new TraceLogger();
+
 			InitializeComponent();
-			LineChart.Series = new SeriesCollection();
+
+			DataContext = this;
 		}
 
 		private async void GC_Button_Click(object sender, RoutedEventArgs e)
@@ -98,21 +104,6 @@ namespace Dapplo.Jolokia.Ui
 										 where attribute.Key == "NonHeapMemoryUsage"
 										 select attribute.Value).First();
 
-			_heapMemorySerie = new LineSeries
-			{	
-				Values = new ChartValues<double>(),
-				Title = "Heap memory"
-			};
-			_heapMemorySerie.Values.Add(0d);
-			_nonHeapMemorySerie = new LineSeries {
-				Values = new ChartValues<double>(),
-				Title = "Non Heap memory"
-			};
-			_nonHeapMemorySerie.Values.Add(0d);
-
-			LineChart.Series.Add(_heapMemorySerie);
-			LineChart.Series.Add(_nonHeapMemorySerie);
-
 			await ReadValuesAsync();
 			_timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
 			_timer.Tick += async (tickSender, args) =>
@@ -140,15 +131,15 @@ namespace Dapplo.Jolokia.Ui
 				// Ignore
 				Log.Error().WriteLine(ex, "Problem retrieving heap usage");
 			}
-			_heapMemorySerie.Values.Add(usedHeap);
-			if (_heapMemorySerie.Values.Count > 10)
+			HeapMemoryValues.Add(usedHeap);
+			if (HeapMemoryValues.Count > 10)
 			{
-				_heapMemorySerie.Values.RemoveAt(0);
+				HeapMemoryValues.RemoveAt(0);
 			}
-			_nonHeapMemorySerie.Values.Add(usedNonHeap);
-			if (_nonHeapMemorySerie.Values.Count > 10)
+			NonHeapMemoryValues.Add(usedNonHeap);
+			if (NonHeapMemoryValues.Count > 10)
 			{
-				_nonHeapMemorySerie.Values.RemoveAt(0);
+				NonHeapMemoryValues.RemoveAt(0);
 			}
 		}
 	}
