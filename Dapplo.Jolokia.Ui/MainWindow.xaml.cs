@@ -29,8 +29,6 @@ using LiveCharts;
 using Dapplo.LogFacade;
 using Dapplo.LogFacade.Loggers;
 using Dapplo.Jolokia.Ui.Entities;
-using LiveCharts.Wpf;
-using LiveCharts.Configurations;
 
 namespace Dapplo.Jolokia.Ui
 {
@@ -52,7 +50,7 @@ namespace Dapplo.Jolokia.Ui
 
 		public MainWindow()
 		{
-			LogSettings.Logger = new TraceLogger();
+			LogSettings.RegisterDefaultLogger<TraceLogger>();
 
 			InitializeComponent();
 
