@@ -26,9 +26,9 @@ using System.Windows;
 using System.Windows.Threading;
 using System.Threading.Tasks;
 using LiveCharts;
-using Dapplo.LogFacade;
-using Dapplo.LogFacade.Loggers;
+using Dapplo.Log.Facade;
 using Dapplo.Jolokia.Ui.Entities;
+using Dapplo.Log.Loggers;
 
 namespace Dapplo.Jolokia.Ui
 {
