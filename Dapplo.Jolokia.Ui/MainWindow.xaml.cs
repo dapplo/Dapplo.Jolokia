@@ -61,7 +61,7 @@ namespace Dapplo.Jolokia.Ui
 		{
 			GcButton.IsEnabled = false;
 
-			await _jolokia.Execute(_garbageCollectOperation, null);
+			await _jolokia.ExecuteAsync(_garbageCollectOperation, null);
 			GcButton.IsEnabled = true;
 		}
 
@@ -118,8 +118,8 @@ namespace Dapplo.Jolokia.Ui
 			double usedNonHeap = 0;
 			try
 			{
-				var heapMemoryUsage = await _jolokia.Read<MemoryUsage>(_heapMemoryUsageAttribute);
-				var nonHeapMemoryUsage = await _jolokia.Read<MemoryUsage>(_nonHeapMemoryUsageAttribute);
+				var heapMemoryUsage = await _jolokia.ReadAsync<MemoryUsage>(_heapMemoryUsageAttribute);
+				var nonHeapMemoryUsage = await _jolokia.ReadAsync<MemoryUsage>(_nonHeapMemoryUsageAttribute);
 				usedNonHeap = nonHeapMemoryUsage.Used;
 				usedHeap = heapMemoryUsage.Used;
 				Log.Info().WriteLine("heapMemoryUsage: {0}, nonHeapMemoryUsage: {1}", usedHeap, usedNonHeap);

@@ -105,10 +105,10 @@ namespace Dapplo.Jolokia
 		/// <summary>
 		/// Load all the JMX information
 		/// </summary>
-		public async Task RefreshAsync(CancellationToken token = default(CancellationToken))
+		public async Task RefreshAsync(CancellationToken cancellationToken = default(CancellationToken))
 		{
-			await LoadVersionAsync(token).ConfigureAwait(false);
-			await LoadListAsync(null, null, token).ConfigureAwait(false);
+			await LoadVersionAsync(cancellationToken).ConfigureAwait(false);
+			await LoadListAsync(null, null, cancellationToken).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -116,11 +116,11 @@ namespace Dapplo.Jolokia
 		/// </summary>
 		/// <param name="domainPath">domain to load, null if all</param>
 		/// <param name="mbeanPath">Mbean to load, null if all</param>
-		/// <param name="token"></param>
-		public async Task LoadListAsync(string domainPath = null, string mbeanPath = null, CancellationToken token = default(CancellationToken))
+		/// <param name="cancellationToken"></param>
+		public async Task LoadListAsync(string domainPath = null, string mbeanPath = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var listUri = _baseUri.AppendSegments("list", domainPath, mbeanPath);
-			var jmxInfo = await listUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
+			var jmxInfo = await listUri.GetAsAsync<dynamic>(cancellationToken).ConfigureAwait(false);
 			if (jmxInfo.status != 200)
 			{
 				throw new InvalidOperationException("Status != 200");
@@ -223,11 +223,11 @@ namespace Dapplo.Jolokia
 		/// <summary>
 		/// Load (or reload) the Jolokia Agent Version
 		/// </summary>
-		/// <param name="token"></param>
-		public async Task LoadVersionAsync(CancellationToken token = default(CancellationToken))
+		/// <param name="cancellationToken"></param>
+		public async Task LoadVersionAsync(CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var versionUri = _baseUri.AppendSegments("version");
-			var versionResult = await versionUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
+			var versionResult = await versionUri.GetAsAsync<dynamic>(cancellationToken).ConfigureAwait(false);
 			AgentVersion = versionResult.value.agent;
 		}
 
@@ -235,11 +235,11 @@ namespace Dapplo.Jolokia
 		/// <summary>
 		/// Reset and turn of history
 		/// </summary>
-		/// <param name="token"></param>
-		public async Task ResetHistoryEntries(CancellationToken token = default(CancellationToken))
+		/// <param name="cancellationToken"></param>
+		public async Task ResetHistoryEntriesAsync(CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var resetHistoryUri = _baseUri.AppendSegments("exec/jolokia:type=Config/resetHistoryEntries");
-			await resetHistoryUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
+			await resetHistoryUri.GetAsAsync<dynamic>(cancellationToken).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -247,9 +247,9 @@ namespace Dapplo.Jolokia
 		/// </summary>
 		/// <param name="operation">Operation to execute</param>
 		/// <param name="arguments">Array of strings for the arguments, check the arguments for what needs to be passed</param>
-		/// <param name="token">CancellationToken</param>
+		/// <param name="cancellationToken">CancellationToken</param>
 		/// <returns>result with string, check the return type for what can be returned</returns>
-		public async Task<dynamic> Execute(Operation operation, string[] arguments, CancellationToken token = default(CancellationToken))
+		public async Task<dynamic> ExecuteAsync(Operation operation, string[] arguments, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			int passedArgumentCount = arguments?.Length ?? 0;
 			int neededArgumentCount = operation.Arguments?.Count ?? 0;
@@ -258,7 +258,7 @@ namespace Dapplo.Jolokia
 				throw new ArgumentException($"Passed arguments for operation {operation.Name} do not match.");
 			}
 			var execUri = _baseUri.AppendSegments("exec", operation.Parent, operation.Name).AppendSegments(arguments);
-			var result = await execUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
+			var result = await execUri.GetAsAsync<dynamic>(cancellationToken).ConfigureAwait(false);
 			return result.value;
 		}
 
@@ -268,11 +268,11 @@ namespace Dapplo.Jolokia
 		/// <param name="operation">Operation</param>
 		/// <param name="count">Length of history</param>
 		/// <param name="seconds">seconds to keep elements</param>
-		/// <param name="token">CancellationToken</param>
-		public async Task EnableHistory(Operation operation, int count, int seconds, CancellationToken token = default(CancellationToken))
+		/// <param name="cancellationToken">CancellationToken</param>
+		public async Task EnableHistoryAsync(Operation operation, int count, int seconds, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var historyLimitUri = _baseUri.AppendSegments("exec/jolokia:type=Config/setHistoryLimitForOperation", operation.Parent, operation.Name, "[null]", "[null]", count, seconds);
-			await historyLimitUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
+			await historyLimitUri.GetAsAsync<dynamic>(cancellationToken).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -280,12 +280,12 @@ namespace Dapplo.Jolokia
 		/// </summary>
 		/// <typeparam name="TValue">the type to which the value of the attribute is deserialized to. Could be dynamic if you don't know what it is</typeparam>
 		/// <param name="attribute">Attr</param>
-		/// <param name="token">CancellationToken</param>
+		/// <param name="cancellationToken">CancellationToken</param>
 		/// <returns>TValue</returns>
-		public async Task<TValue> Read<TValue>(Attr attribute, CancellationToken token = default(CancellationToken))
+		public async Task<TValue> ReadAsync<TValue>(Attr attribute, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var readUri = _baseUri.AppendSegments("read", attribute.Parent, attribute.Name);
-			var result = await readUri.GetAsAsync<AttributeValue<TValue>>(token).ConfigureAwait(false);
+			var result = await readUri.GetAsAsync<AttributeValue<TValue>>(cancellationToken).ConfigureAwait(false);
 			return result.Value;
 		}
 
@@ -294,12 +294,12 @@ namespace Dapplo.Jolokia
 		/// </summary>
 		/// <param name="attribute">Attr</param>
 		/// <param name="value">string with the </param>
-		/// <param name="token">CancellationToken</param>
+		/// <param name="cancellationToken">CancellationToken</param>
 		/// <returns>dynamic, check the Type for what it is</returns>
-		public async Task<dynamic> Write(Attr attribute, string value, CancellationToken token = default(CancellationToken))
+		public async Task<dynamic> WriteAsync(Attr attribute, string value, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var writeUri = _baseUri.AppendSegments("write", attribute.Parent, attribute.Name).AppendSegments(value);
-			var result = await writeUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
+			var result = await writeUri.GetAsAsync<dynamic>(cancellationToken).ConfigureAwait(false);
 			return result.value;
 		}
 
@@ -309,11 +309,11 @@ namespace Dapplo.Jolokia
 		/// <param name="attribute">Attr</param>
 		/// <param name="count">Length of history</param>
 		/// <param name="seconds">seconds to keep elements</param>
-		/// <param name="token">CancellationToken</param>
-		public async Task EnableHistory(Attr attribute, int count, int seconds, CancellationToken token = default(CancellationToken))
+		/// <param name="cancellationToken">CancellationToken</param>
+		public async Task EnableHistoryAsync(Attr attribute, int count, int seconds, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var historyLimitUri = _baseUri.AppendSegments("exec/jolokia:type=Config/setHistoryLimitForAttribute", attribute.Parent, attribute.Name, "[null]", "[null]", count, seconds);
-			await historyLimitUri.GetAsAsync<dynamic>(token).ConfigureAwait(false);
+			await historyLimitUri.GetAsAsync<dynamic>(cancellationToken).ConfigureAwait(false);
 		}
 	}
 }
