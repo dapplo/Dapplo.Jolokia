@@ -1,0 +1,145 @@
+﻿using System;
+using System.ComponentModel.Composition;
+using System.Linq;
+using System.Reactive.Concurrency;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using Caliburn.Micro;
+using Dapplo.CaliburnMicro;
+using Dapplo.Jolokia.Model;
+using Dapplo.Jolokia.Ui.Entities;
+using Dapplo.Log;
+using LiveCharts;
+
+namespace Dapplo.Jolokia.Ui.ViewModels
+{
+	[Export(typeof(IShell))]
+	public class ShellViewModel : Screen, IShell
+	{
+		private static readonly LogSource Log = new LogSource();
+		private Jolokia _jolokia;
+		private string _jolokiaUri;
+		private Attr _heapMemoryUsageAttribute;
+		private Attr _nonHeapMemoryUsageAttribute;
+		private Operation _garbageCollectOperation;
+
+		public ChartValues<double> HeapMemoryValues { get; set; } = new ChartValues<double>();
+
+		public ChartValues<double> NonHeapMemoryValues { get; set; } = new ChartValues<double>();
+
+		public string JolokiaUri
+		{
+			get
+			{
+				return _jolokiaUri;
+			}
+			set
+			{
+				_jolokiaUri = value;
+				NotifyOfPropertyChange();
+				CanConnect = !string.IsNullOrWhiteSpace(_jolokiaUri);
+				NotifyOfPropertyChange(nameof(CanConnect));
+			}
+		}
+
+		/// <summary>
+		/// Describes if the connect can be pressed
+		/// </summary>
+		public bool CanConnect { get; private set; }
+
+		/// <summary>
+		/// Connect to the Jolokia server, with the given Jolokia URL
+		/// </summary>
+		/// <returns></returns>
+		public async Task Connect()
+		{
+			CanConnect = false;
+			NotifyOfPropertyChange(nameof(CanConnect));
+			try
+			{
+				_jolokia = await Jolokia.Create(new Uri(JolokiaUri));
+
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				CanConnect = true;
+				NotifyOfPropertyChange(nameof(CanConnect));
+				return;
+			}
+			await _jolokia.LoadListAsync("java.lang", "type=Memory");
+
+			var javaLangDomain = _jolokia.Domains["java.lang"];
+			var memoryMBean = (from mbean in javaLangDomain.Values
+							   where mbean.Name == "type=Memory"
+							   select mbean).First();
+
+			_garbageCollectOperation = (from operation in memoryMBean.Operations
+										where operation.Key == "gc"
+										select operation.Value).First();
+			_heapMemoryUsageAttribute = (from attribute in memoryMBean.Attributes
+										 where attribute.Key == "HeapMemoryUsage"
+										 select attribute.Value).First();
+			_nonHeapMemoryUsageAttribute = (from attribute in memoryMBean.Attributes
+											where attribute.Key == "NonHeapMemoryUsage"
+											select attribute.Value).First();
+
+
+			await ReadValuesAsync();
+			Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(10))
+				.SubscribeOn(NewThreadScheduler.Default)
+				.ObserveOn(DispatcherScheduler.Current)
+				.Subscribe(async tick => await ReadValuesAsync());
+
+			CanGarbageCollect = true;
+			NotifyOfPropertyChange(nameof(CanGarbageCollect));
+		}
+
+		private async Task ReadValuesAsync()
+		{
+			double usedHeap = 0;
+			double usedNonHeap = 0;
+			try
+			{
+				var heapMemoryUsage = await _jolokia.ReadAsync<MemoryUsage>(_heapMemoryUsageAttribute);
+				var nonHeapMemoryUsage = await _jolokia.ReadAsync<MemoryUsage>(_nonHeapMemoryUsageAttribute);
+				usedNonHeap = nonHeapMemoryUsage.Used;
+				usedHeap = heapMemoryUsage.Used;
+				Log.Info().WriteLine("heapMemoryUsage: {0}, nonHeapMemoryUsage: {1}", usedHeap, usedNonHeap);
+			}
+			catch (Exception ex)
+			{
+				// Ignore
+				Log.Error().WriteLine(ex, "Problem retrieving heap usage");
+			}
+			HeapMemoryValues.Add(usedHeap);
+			if (HeapMemoryValues.Count > 10)
+			{
+				HeapMemoryValues.RemoveAt(0);
+			}
+			NonHeapMemoryValues.Add(usedNonHeap);
+			if (NonHeapMemoryValues.Count > 10)
+			{
+				NonHeapMemoryValues.RemoveAt(0);
+			}
+		}
+
+		/// <summary>
+		/// Describes if the GarbageCollect can be executed
+		/// </summary>
+		public bool CanGarbageCollect { get; private set; }
+
+		/// <summary>
+		/// Call a garbage collect
+		/// </summary>
+		public async Task GarbageCollect()
+		{
+			CanGarbageCollect = false;
+			NotifyOfPropertyChange(nameof(CanGarbageCollect));
+
+			await _jolokia.ExecuteAsync(_garbageCollectOperation, null);
+			CanGarbageCollect = true;
+		}
+	}
+}
