@@ -11,6 +11,7 @@ using Dapplo.Jolokia.Model;
 using Dapplo.Jolokia.Ui.Entities;
 using Dapplo.Log;
 using LiveCharts;
+using MahApps.Metro.Controls.Dialogs;
 
 namespace Dapplo.Jolokia.Ui.ViewModels
 {
@@ -23,6 +24,12 @@ namespace Dapplo.Jolokia.Ui.ViewModels
 		private Attr _heapMemoryUsageAttribute;
 		private Attr _nonHeapMemoryUsageAttribute;
 		private Operation _garbageCollectOperation;
+
+		/// <summary>
+		///     Used to make it possible to show a MahApps dialog
+		/// </summary>
+		[Import]
+		private IDialogCoordinator Dialogcoordinator { get; set; }
 
 		public ChartValues<double> HeapMemoryValues { get; set; } = new ChartValues<double>();
 
@@ -59,11 +66,12 @@ namespace Dapplo.Jolokia.Ui.ViewModels
 			try
 			{
 				_jolokia = await Jolokia.Create(new Uri(JolokiaUri));
-
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				// show the error message
+				await Dialogcoordinator.ShowMessageAsync(this, "Error", ex.Message, MessageDialogStyle.AffirmativeAndNegative);
+				// Enable the connect button again
 				CanConnect = true;
 				NotifyOfPropertyChange(nameof(CanConnect));
 				return;
