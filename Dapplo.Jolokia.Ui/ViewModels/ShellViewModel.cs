@@ -4,10 +4,11 @@ using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using System.Windows;
 using Caliburn.Micro;
 using Dapplo.CaliburnMicro;
+using Dapplo.CaliburnMicro.Extensions;
 using Dapplo.Jolokia.Model;
+using Dapplo.Jolokia.Ui.Configuration;
 using Dapplo.Jolokia.Ui.Entities;
 using Dapplo.Log;
 using LiveCharts;
@@ -20,10 +21,12 @@ namespace Dapplo.Jolokia.Ui.ViewModels
 	{
 		private static readonly LogSource Log = new LogSource();
 		private Jolokia _jolokia;
-		private string _jolokiaUri;
 		private Attr _heapMemoryUsageAttribute;
 		private Attr _nonHeapMemoryUsageAttribute;
 		private Operation _garbageCollectOperation;
+
+		[Import]
+		public IJolokiaConfiguration JolokiaConfiguration { get; set; }
 
 		/// <summary>
 		///     Used to make it possible to show a MahApps dialog
@@ -35,19 +38,30 @@ namespace Dapplo.Jolokia.Ui.ViewModels
 
 		public ChartValues<double> NonHeapMemoryValues { get; set; } = new ChartValues<double>();
 
-		public string JolokiaUri
+		protected override void OnActivate()
 		{
-			get
+			base.OnActivate();
+
+			JolokiaConfiguration.OnPropertyChanged(nameof(IJolokiaConfiguration.JolokiaUri))
+				.SubscribeOn(NewThreadScheduler.Default)
+				.ObserveOn(DispatcherScheduler.Current)
+				.Subscribe(args =>
+				{
+					UpdateCanConnect();
+				});
+		}
+
+		private void UpdateCanConnect(bool disable = false)
+		{
+			if (disable)
 			{
-				return _jolokiaUri;
+				CanConnect = false;
 			}
-			set
+			else
 			{
-				_jolokiaUri = value;
-				NotifyOfPropertyChange();
-				CanConnect = !string.IsNullOrWhiteSpace(_jolokiaUri);
-				NotifyOfPropertyChange(nameof(CanConnect));
+				CanConnect = _jolokia == null && JolokiaConfiguration.JolokiaUri != null && JolokiaConfiguration.JolokiaUri?.IsFile != true;
 			}
+			NotifyOfPropertyChange(nameof(CanConnect));
 		}
 
 		/// <summary>
@@ -61,19 +75,17 @@ namespace Dapplo.Jolokia.Ui.ViewModels
 		/// <returns></returns>
 		public async Task Connect()
 		{
-			CanConnect = false;
-			NotifyOfPropertyChange(nameof(CanConnect));
+			UpdateCanConnect(disable: true);
 			try
 			{
-				_jolokia = await Jolokia.Create(new Uri(JolokiaUri));
+				_jolokia = await Jolokia.Create(JolokiaConfiguration.JolokiaUri);
 			}
 			catch (Exception ex)
 			{
 				// show the error message
 				await Dialogcoordinator.ShowMessageAsync(this, "Error", ex.Message, MessageDialogStyle.AffirmativeAndNegative);
 				// Enable the connect button again
-				CanConnect = true;
-				NotifyOfPropertyChange(nameof(CanConnect));
+				UpdateCanConnect();
 				return;
 			}
 			await _jolokia.LoadListAsync("java.lang", "type=Memory");
