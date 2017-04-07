@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Windows;
-using Dapplo.CaliburnMicro;
+using Dapplo.CaliburnMicro.Dapp;
 using Dapplo.Log;
 using Dapplo.Log.Loggers;
 
@@ -15,7 +15,7 @@ namespace Dapplo.Jolokia.Ui
 		/// Entry point for the application
 		/// </summary>
 		[STAThread]
-		public static void Main()
+		public static void Main(string[] args)
 		{
 			var dapplication = new Dapplication("Jolokia", "1392C220-45DA-468D-BA32-53B93D9F6E70")
 			{

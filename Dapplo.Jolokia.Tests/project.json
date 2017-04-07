@@ -1,0 +1,18 @@
+﻿{
+  "version": "1.0.0-*",
+
+    "dependencies": {
+        "Dapplo.Jolokia": "*",
+        "NETStandard.Library": "1.6.1",
+        "xunit": "2.2.0"
+    },
+
+    "frameworks": {
+        "net46": {
+            "frameworkAssemblies": {
+            },
+            "dependencies": {
+            }
+        }
+    }
+}

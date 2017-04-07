@@ -1,0 +1,30 @@
+﻿{
+    "timestamp": 1491558367,
+    "status": 200,
+    "request": { "type": "version" },
+    "value": {
+        "protocol": "7.2",
+        "config": {
+            "detectorOptions": "{}",
+            "canonicalNaming": "true",
+            "maxCollectionSize": "1000",
+            "includeStackTrace": "true",
+            "historyMaxEntries": "10",
+            "agentId": "10.90.202.144-17970-6a1308c7-servlet",
+            "debug": "false",
+            "dispatcherClasses": "org.jolokia.jsr160.Jsr160RequestDispatcher",
+            "maxDepth": "15",
+            "maxObjects": "0",
+            "discoveryEnabled": "false",
+            "serializeException": "false",
+            "agentType": "servlet",
+            "debugMaxEntries": "100"
+        },
+        "agent": "1.2.2",
+        "info": {
+            "product": "jboss",
+            "vendor": "RedHat",
+            "version": "7.5.12.Final-redhat-1"
+        }
+    }
+}
