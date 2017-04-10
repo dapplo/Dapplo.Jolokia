@@ -80,7 +80,7 @@ namespace Dapplo.Jolokia.Ui.ViewModels
             UpdateCanConnect(disable: true);
             try
             {
-                _jolokia = await JolokiaClient.CreateAsync(JolokiaConfiguration.JolokiaUri);
+                _jolokia = JolokiaClient.Create(JolokiaConfiguration.JolokiaUri);
             }
             catch (Exception ex)
             {

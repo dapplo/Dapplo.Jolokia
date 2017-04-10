@@ -32,9 +32,11 @@ namespace Dapplo.Jolokia
     /// <summary>
     /// A simple implementation of a Jolokia API for .NET
     /// </summary>
-    public class JolokiaClient
+    public class JolokiaClient : IJolokiaClient
     {
         private readonly Uri _baseUri;
+        private string _password;
+        private string _user;
 
         /// <summary>
         /// The IHttpBehaviour
@@ -42,65 +44,57 @@ namespace Dapplo.Jolokia
         public IHttpBehaviour Behaviour { get; }
 
         /// <summary>
-        /// Create a Jolokia API object
+        /// Create a Jolokia client
         /// </summary>
-        /// <param name="hostname"></param>
-        /// <param name="port"></param>
-        /// <param name="schema"></param>
-        /// <param name="cancellationToken">CancellationToken</param>
-        /// <param name="username"></param>
-        /// <param name="password"></param>
+        /// <param name="jolokiaUri">Base-uri to the jolokia server (normally ends with jolokia)</param>
+        /// <param name="httpSettings">IHttpSettings or null for default</param>
         /// <returns>Jolokia</returns>
-        public static async Task<JolokiaClient> CreateAsync(string hostname, int port, string schema = "http", string username = null, string password = null, CancellationToken cancellationToken = default(CancellationToken))
+        public static JolokiaClient Create(Uri jolokiaUri, IHttpSettings httpSettings = null)
         {
-            var uriBuilder = new UriBuilder(schema, hostname, port, "/jolokia");
-            if (username != null)
-            {
-                uriBuilder.UserName = username;
-            }
-            if (password != null)
-            {
-                uriBuilder.Password = password;
-            }
-            return await CreateAsync(uriBuilder.Uri, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Create a Jolokia API object
-        /// </summary>
-        /// <param name="jolokiaUri">Predefined base-uri to the jolokia REST API (normally ends with jolokia)</param>
-        /// <param name="cancellationToken">CancellationToken</param>
-        /// <returns>Jolokia</returns>
-        public static async Task<JolokiaClient> CreateAsync(Uri jolokiaUri, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            // Make sure Jolokia answers with json, see Release 1.0.2 – 2012-01-06: https://jolokia.org/changes-report.html
-            jolokiaUri = jolokiaUri.ExtendQuery("mimeType", "application/json");
-
-            var jolokia = new JolokiaClient(jolokiaUri);
-            await jolokia.LoadVersionAsync(cancellationToken).ConfigureAwait(false);
-            return jolokia;
+            return  new JolokiaClient(jolokiaUri, httpSettings);
         }
 
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="baseUri"></param>
-        private JolokiaClient(Uri baseUri)
+        /// <param name="baseUri">Base URL, e.g. https://yourjolokiaserver/jolokia</param>
+        /// <param name="httpSettings">IHttpSettings or null for default</param>
+        private JolokiaClient(Uri baseUri, IHttpSettings httpSettings = null)
         {
-            _baseUri = baseUri;
-            Behaviour = new HttpBehaviour
-            {
-                JsonSerializer = new SimpleJsonSerializer()
-            };
+            // Make sure Jolokia answers with json, see Release 1.0.2 – 2012-01-06: https://jolokia.org/changes-report.html
+            _baseUri = baseUri.ExtendQuery("mimeType", "application/json");
+            Behaviour = ConfigureBehaviour(new HttpBehaviour(), httpSettings);
         }
 
         /// <summary>
-        /// Returns the Jolokia Agent-Version
+        ///     Helper method to configure the IChangeableHttpBehaviour
         /// </summary>
-        public string AgentVersion
+        /// <param name="behaviour">IChangeableHttpBehaviour</param>
+        /// <param name="httpSettings">IHttpSettings</param>
+        /// <returns>the behaviour, but configured as IHttpBehaviour </returns>
+        private IHttpBehaviour ConfigureBehaviour(IChangeableHttpBehaviour behaviour, IHttpSettings httpSettings = null)
         {
-            get;
-            private set;
+            behaviour.HttpSettings = httpSettings ?? HttpExtensionsGlobals.HttpSettings.ShallowClone();
+
+            // Specify the Json Serializer
+            behaviour.JsonSerializer = new SimpleJsonSerializer();
+
+            behaviour.OnHttpRequestMessageCreated = httpMessage =>
+            {
+                if (!string.IsNullOrEmpty(_user) && _password != null)
+                {
+                    httpMessage?.SetBasicAuthorization(_user, _password);
+                }
+                return httpMessage;
+            };
+            return behaviour;
+        }
+
+        /// <inheritdoc />
+        public void SetBasicAuthentication(string user, string password)
+        {
+            _user = user;
+            _password = password;
         }
 
         /// <summary>
@@ -123,39 +117,52 @@ namespace Dapplo.Jolokia
         /// <summary>
         /// Process the MBean information
         /// </summary>
-        /// <param name="domainPath"></param>
-        /// <param name="mbeans"></param>
-        private void ProcessMBeans(string domainPath, IDictionary<string, MBean> mbeans)
+        /// <param name="domainName">Name of the domain</param>
+        /// <param name="mbeanName">Name of the mbean</param>
+        /// <param name="mbean">MBean</param>
+        private void ProcessMBean(string domainName, string mbeanName, MBean mbean)
+        {
+            mbean.Name = mbeanName;
+            mbean.Domain = domainName;
+
+            // Correct attributes
+            if (mbean.Attributes != null)
+            {
+                foreach (var attibuteKey in mbean.Attributes.Keys)
+                {
+                    var attribute = mbean.Attributes[attibuteKey];
+                    attribute.Name = attibuteKey;
+                    attribute.Parent = mbean.FullyqualifiedName;
+                }
+            }
+
+            // Build operations
+            if (mbean.Operations != null)
+            {
+                foreach (var openrationKey in mbean.Operations.Keys)
+                {
+                    var operation = mbean.Operations[openrationKey];
+                    operation.Name = openrationKey;
+                    operation.Parent = mbean.FullyqualifiedName;
+                }
+            }
+            Domains[mbean.Domain][mbeanName] = mbean;
+        }
+
+
+        /// <summary>
+        /// Process the MBeans information
+        /// </summary>
+        /// <param name="domainName">Name of the domain</param>
+        /// <param name="mbeans">IDictionary with MBean elements</param>
+        private void ProcessMBeans(string domainName, IDictionary<string, MBean> mbeans)
         {
             foreach (var mbeanKey in mbeans.Keys)
             {
-                var mbean = mbeans[mbeanKey];
-                mbean.Name = mbeanKey;
-                mbean.Domain = domainPath;
-
-                // Correct attributes
-                if (mbean.Attributes != null)
-                {
-                    foreach (var attibuteKey in mbean.Attributes.Keys)
-                    {
-                        var attribute = mbean.Attributes[attibuteKey];
-                        attribute.Name = attibuteKey;
-                        attribute.Parent = mbean.FullyqualifiedName;
-                    }
-                }
-
-                // Build operations
-                if (mbean.Operations != null)
-                {
-                    foreach (var openrationKey in mbean.Operations.Keys)
-                    {
-                        var operation = mbean.Operations[openrationKey];
-                        operation.Name = openrationKey;
-                        operation.Parent = mbean.FullyqualifiedName;
-                    }
-                }
+                ProcessMBean(domainName, mbeanKey, mbeans[mbeanKey]);
             }
         }
+
         /// <summary>
         /// Load the list output from Jolokia, and parse it to MBeans and Operations
         /// </summary>
@@ -165,8 +172,28 @@ namespace Dapplo.Jolokia
         public async Task LoadListAsync(string domainPath = null, string mbeanPath = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             var listUri = _baseUri.AppendSegments("list", domainPath, mbeanPath);
+            Behaviour.MakeCurrent();
 
-            if (!string.IsNullOrEmpty(domainPath))
+
+            // Check if this is loading a MBean
+            if (!string.IsNullOrEmpty(domainPath) && !string.IsNullOrEmpty(mbeanPath))
+            {
+                // No path means we handle a result with domains
+                var jmxResponseDomains = await listUri.GetAsAsync<ValueContainer<MBean>>(cancellationToken).ConfigureAwait(false);
+                if (jmxResponseDomains.Status != 200)
+                {
+                    throw new InvalidOperationException("Status != 200");
+                }
+                IDictionary<string, MBean> mbeans;
+                if (!Domains.TryGetValue(domainPath, out mbeans))
+                {
+                    mbeans = new Dictionary<string, MBean>();
+                    Domains[domainPath] = mbeans;
+                }
+                ProcessMBean(domainPath, mbeanPath, jmxResponseDomains.Value);
+            }
+            // Check if this is loading a domain
+            else if (!string.IsNullOrEmpty(domainPath))
             {
                 // No path means we handle a result with domains
                 var jmxResponseDomains = await listUri.GetAsAsync<ValueContainer<IDictionary<string, IDictionary<string, MBean>>>>(cancellationToken).ConfigureAwait(false);
@@ -180,7 +207,7 @@ namespace Dapplo.Jolokia
                     if (!Domains.TryGetValue(domainKey, out mbeans))
                     {
                         mbeans = new Dictionary<string, MBean>();
-                        Domains.Add(domainKey, mbeans);
+                        Domains[domainPath] = mbeans;
                     }
                     ProcessMBeans(domainKey, jmxResponseDomains.Value[domainKey]);
                 }
@@ -206,8 +233,7 @@ namespace Dapplo.Jolokia
             Behaviour.MakeCurrent();
             var versionUri = _baseUri.AppendSegments("version");
             var versionResult = await versionUri.GetAsAsync<ValueContainer<AgentInfo>>(cancellationToken).ConfigureAwait(false);
-            AgentVersion = versionResult.Value.Agent;
-            return AgentVersion;
+            return versionResult.Value.Agent;
         }
 
 

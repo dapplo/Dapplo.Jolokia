@@ -1,19 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Dapplo.Jolokia.Tests
 {
-    public class ServerTests
+    public class ServerTests : TestBase
     {
+        public ServerTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+        {
+            
+        }
+
         [Fact]
         public async Task Test_ServerInfo()
         {
-            var client = await JolokiaClient.CreateAsync(new Uri("http://jeeadmin:ingdiba1!@gf0vsxja095t:8180/jolokia"));
-            await client.LoadVersionAsync();
-
+            var version = await Client.LoadVersionAsync();
+            Assert.NotEmpty(version);
         }
     }
 }
