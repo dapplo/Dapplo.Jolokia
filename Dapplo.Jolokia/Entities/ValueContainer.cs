@@ -19,6 +19,7 @@
 //  You should have a copy of the GNU Lesser General Public License
 //  along with Dapplo.Jolokia. If not, see <http://www.gnu.org/licenses/lgpl.txt>.
 
+using System;
 using System.Runtime.Serialization;
 
 namespace Dapplo.Jolokia.Entities
@@ -32,8 +33,24 @@ namespace Dapplo.Jolokia.Entities
         /// <summary>
         /// Timestamp for when the value was retrieved
         /// </summary>
+        public DateTimeOffset Timestamp
+        {
+            get
+            {
+#if NET46
+                return DateTimeOffset.FromUnixTimeSeconds(Epoch);
+#else
+                var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                return epoch.AddSeconds(Epoch);
+#endif
+            }
+        }
+
+        /// <summary>
+        /// Timestamp with seconds since 1.1.1970, for when the value was retrieved
+        /// </summary>
         [DataMember(Name = "timestamp")]
-        public long Timestamp { get; set; }
+        public long Epoch { get; set; }
 
         /// <summary>
         /// Status of the retrieval

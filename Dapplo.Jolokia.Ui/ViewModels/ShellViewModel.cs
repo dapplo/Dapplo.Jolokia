@@ -77,7 +77,7 @@ namespace Dapplo.Jolokia.Ui.ViewModels
         /// <returns></returns>
         public async Task Connect()
         {
-            UpdateCanConnect(disable: true);
+            UpdateCanConnect(true);
             try
             {
                 _jolokia = JolokiaClient.Create(JolokiaConfiguration.JolokiaUri);
@@ -159,7 +159,7 @@ namespace Dapplo.Jolokia.Ui.ViewModels
         {
             CanGarbageCollect = false;
             NotifyOfPropertyChange(nameof(CanGarbageCollect));
-            await _jolokia.ExecuteAsync(_garbageCollectOperation, null);
+            await _jolokia.ExecuteAsync<string>(_garbageCollectOperation, Enumerable.Empty<string>());
             CanGarbageCollect = true;
         }
     }

@@ -35,11 +35,13 @@ namespace Dapplo.Jolokia.Tests
             LogSettings.RegisterDefaultLogger<XUnitLogger>(LogLevels.Verbose, testOutputHelper);
             Client = JolokiaClient.Create(new Uri(TestUri));
 
-            if (doLogin && !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(Password))
+            if (!doLogin || string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
             {
-                Log.Verbose().WriteLine("Setting basic authentication for user {0}", Username);
-                Client.SetBasicAuthentication(Username, Password);
+                return;
             }
+
+            Log.Verbose().WriteLine("Setting basic authentication for user {0}", Username);
+            Client.SetBasicAuthentication(Username, Password);
         }
     }
 }

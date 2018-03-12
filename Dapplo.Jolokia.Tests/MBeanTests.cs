@@ -36,6 +36,8 @@ namespace Dapplo.Jolokia.Tests
                                             where attribute.Key == "NonHeapMemoryUsage"
                                             select attribute.Value).First();
             Assert.NotNull(nonHeapMemoryAttribute);
+
+            await Client.ExecuteAsync<string>(gcOperation, Enumerable.Empty<string>());
         }
     }
 }

@@ -25,6 +25,7 @@ namespace Dapplo.Jolokia.Ui
 				{
 					MessageBox.Show("Already running, this process exits", "Jolokia", MessageBoxButton.OK, MessageBoxImage.Exclamation);
 					Dapplication.Current.Shutdown();
+					return -1;
 				},
 				ObserveUnhandledTaskException = true,
 				OnUnhandledTaskException = exception => new LogSource().Error().WriteLine(exception.Message)

@@ -82,5 +82,40 @@ namespace Dapplo.Jolokia.Entities
             get;
             set;
         } = new Dictionary<string, MBeanOperation>();
+
+        /// <summary>
+        /// Update the name and domain for the MBean
+        /// </summary>
+        /// <param name="domain">string with the domain</param>
+        /// <param name="name">string with the name</param>
+        public void Update(string domain, string name)
+        {
+            Name = name;
+            Domain = domain;
+
+            // Correct attributes
+            if (Attributes != null)
+            {
+                foreach (var attibuteKey in Attributes.Keys)
+                {
+                    var attribute = Attributes[attibuteKey];
+                    attribute.Name = attibuteKey;
+                    attribute.Parent = FullyqualifiedName;
+                }
+            }
+
+            // Build operations
+            if (Operations == null)
+            {
+                return;
+            }
+
+            foreach (var openrationKey in Operations.Keys)
+            {
+                var operation = Operations[openrationKey];
+                operation.Name = openrationKey;
+                operation.Parent = FullyqualifiedName;
+            }
+        }
     }
 }

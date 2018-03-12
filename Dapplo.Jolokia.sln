@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Dapplo.Jolokia", "Dapplo.Jolokia\Dapplo.Jolokia.xproj", "{5A17AE73-C5C9-4AEF-8C02-6E181670876E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dapplo.Jolokia", "Dapplo.Jolokia\Dapplo.Jolokia.csproj", "{5A17AE73-C5C9-4AEF-8C02-6E181670876E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dapplo.Jolokia.Ui", "Dapplo.Jolokia.Ui\Dapplo.Jolokia.Ui.csproj", "{765BB6A6-17E2-4DAB-B075-C55F0D1DB550}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Dapplo.Jolokia.Tests", "Dapplo.Jolokia.Tests\Dapplo.Jolokia.Tests.xproj", "{AB117721-1658-49C5-9C91-6C2D8E59A3A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dapplo.Jolokia.Tests", "Dapplo.Jolokia.Tests\Dapplo.Jolokia.Tests.csproj", "{AB117721-1658-49C5-9C91-6C2D8E59A3A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +30,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {590A6266-423A-457A-A6D4-7BC131103E0B}
 	EndGlobalSection
 EndGlobal
